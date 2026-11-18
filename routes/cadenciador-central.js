@@ -232,10 +232,10 @@ async function carregarCelulas(filtroId = null) {
   const ordensAtivas = linhas.map(c => c.ordem_id).filter(Boolean);
   if (ordensAtivas.length) {
     const r = await pool.query(
-      `SELECT ordem_id, COUNT(*) FILTER (WHERE serie IS NOT NULL)::int AS ok,
-              COUNT(*) FILTER (WHERE serie IS NULL AND ok = FALSE)::int AS nok,
-              to_char(MAX(criado_em) FILTER (WHERE serie IS NOT NULL) AT TIME ZONE '${FUSO}', 'HH24:MI:SS') AS ultima,
-              (ARRAY_AGG(serie ORDER BY id DESC) FILTER (WHERE serie IS NOT NULL))[1] AS ultima_serie
+      `SELECT ordem_id, COUNT(*) FILTER (WHERE ok IS NOT FALSE)::int AS ok,
+              COUNT(*) FILTER (WHERE ok = FALSE)::int AS nok,
+              to_char(MAX(criado_em) FILTER (WHERE ok IS NOT FALSE) AT TIME ZONE '${FUSO}', 'HH24:MI:SS') AS ultima,
+              (ARRAY_AGG(serie ORDER BY id DESC) FILTER (WHERE ok IS NOT FALSE))[1] AS ultima_serie
          FROM cadc_pesagens WHERE ordem_id = ANY($1::int[]) GROUP BY ordem_id`, [ordensAtivas]);
     for (const x of r.rows) pesos.set(x.ordem_id, { ok: x.ok, nok: x.nok, ultima: x.ultima, ultima_serie: x.ultima_serie });
   }
@@ -1590,6 +1590,6 @@ router.post('/tablet/liberar', tabletOuSessao, async (req, res) => {
 
 router.tabletOuSessao = tabletOuSessao;
 // usados pela estação de pesagem (routes/pesagem.js)
-Object.assign(router, { umaCelula, comando, relogio, dataFabrica, dataDoTurno, turnosCache, qtdEntreSeries, FUSO });
+Object.assign(router, { umaCelula, carregarCelulas, comando, relogio, dataFabrica, dataDoTurno, turnosCache, qtdEntreSeries, FUSO });
 
 module.exports = router;

@@ -361,7 +361,14 @@ CREATE TABLE IF NOT EXISTS cadc_pesagens (
 );
 CREATE INDEX IF NOT EXISTS idx_cadc_pes_ordem ON cadc_pesagens(ordem_id);
 CREATE INDEX IF NOT EXISTS idx_cadc_pes_dia ON cadc_pesagens(celula_id, data);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_cadc_pes_serie ON cadc_pesagens(serie) WHERE serie IS NOT NULL;
+/* A balança não fica presa a uma célula: quem liga a pesagem à célula é o NÚMERO DE SÉRIE bipado
+   (só os números contam: JSF0000433645 = 433645, comparado com a faixa inicial-final da célula).
+   Peso incorreto também guarda a série, mas não conta como peça e pode ser bipado de novo. */
+ALTER TABLE cadc_pesagens ADD COLUMN IF NOT EXISTS serie_num BIGINT;
+DROP INDEX IF EXISTS uq_cadc_pes_serie;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_cadc_pes_serie_ok ON cadc_pesagens(serie) WHERE serie IS NOT NULL AND ok IS NOT FALSE;
+CREATE INDEX IF NOT EXISTS idx_cadc_pes_num ON cadc_pesagens(ordem_id, serie_num);
+CREATE INDEX IF NOT EXISTS idx_cadc_pes_estacao ON cadc_pesagens(estacao_id, id DESC);
 
 /* ══════════════ SISTEMA 3 — PROGESTÃO ══════════════ */
 

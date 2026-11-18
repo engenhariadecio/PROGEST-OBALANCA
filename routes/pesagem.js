@@ -6,9 +6,11 @@
    pede para bipar o número de série. Cada pesagem fica gravada com
    célula, programação (OP), produto, série e peso.
 
-   A estação fica ligada a uma célula do Cadenciador central: a contagem
-   de peças pesadas é comparada com a meta e com a cadência (takt) da célula.
-   Peso incorreto vira aviso de voz nos tablets da célula.
+   A balança NÃO pertence a nenhuma célula. Quem liga a pesagem à célula é o
+   número de série bipado: só os números contam (JSF0000433645 = 433645) e
+   ele é procurado na faixa inicial-final de cada célula que está rodando.
+   A contagem de peças pesadas é comparada com a meta e com a cadência (takt)
+   da célula. Peso incorreto vira aviso de voz nos tablets dessa célula.
    ═══════════════════════════════════════════════════════════════════════ */
 
 const express = require('express');
@@ -96,33 +98,59 @@ function faixaDoProduto(prod) {
 }
 const limparSerie = v => String(v == null ? '' : v).trim().toUpperCase().replace(/\s+/g, '');
 
-/** Confere a série bipada com a faixa da OP da célula. Devolve { erro } ou { fora_faixa }. */
-function conferirSerie(serie, ordem) {
-  if (!/^[A-Z0-9][A-Z0-9\-_/.]{3,39}$/.test(serie)) return { erro: 'Código lido não parece um número de série. Bipe de novo.' };
-  const ini = ordem && ordem.serie_inicial, fim = ordem && ordem.serie_final;
-  if (!ini) return { fora_faixa: false };
-  if (serie.length !== ini.length) return { erro: `Número de série deve ter ${ini.length} caracteres (lido: ${serie.length}). Bipe a etiqueta de série.` };
-  const desdeInicio = central.qtdEntreSeries(ini, serie);
-  if (desdeInicio == null) return { erro: `Esta série não é desta OP (esperado começar como ${ini.slice(0, Math.max(1, ini.length - 5))}…).` };
-  let fora = desdeInicio < 1;
-  if (!fora && fim) { const ateFim = central.qtdEntreSeries(serie, fim); fora = ateFim != null && ateFim < 1; }
-  return { fora_faixa: fora };
+/** Só os números da série contam: "JSF0000433645" → 433645. null se não houver número. */
+function numeroDaSerie(serie) {
+  const d = String(serie == null ? '' : serie).replace(/\D/g, '');
+  if (!d) return null;
+  const n = Number(d.slice(-15));
+  return Number.isSafeInteger(n) ? n : null;
+}
+
+/**
+ * A balança não pertence a nenhuma célula: quem diz de qual célula é a peça é o número de série.
+ * Procura a programação cuja faixa (série inicial → final) contém o número bipado.
+ * Vale primeiro a que está rodando; depois a que já encerrou e ainda não foi enviada ao Plano.
+ * Devolve { ordem } | { programada } (ainda não começou) | {} (nenhuma célula tem essa série).
+ */
+async function ordemDaSerie(n) {
+  const r = await pool.query(
+    `SELECT o.id, o.celula_id, o.celula_nome, o.status, o.produto_id, o.num_op, o.cod_decio, o.turno_id,
+            o.serie_inicial, o.serie_final, o.meta::float AS meta, to_char(o.data,'YYYY-MM-DD') AS dia,
+            COALESCE(p.nome, o.produto_nome) AS produto_nome, p.cod_decio AS p_cod,
+            p.peso_kg::float AS peso_kg, p.peso_tol_kg::float AS peso_tol_kg,
+            (c.id IS NOT NULL) AS rodando
+       FROM cadc_ordens o
+       LEFT JOIN cad_produtos p ON p.id = o.produto_id
+       LEFT JOIN cadc_celulas c ON c.ordem_id = o.id
+      WHERE COALESCE(o.serie_inicial,'') <> ''
+        AND (o.status IN ('ativa','programada') OR (o.status = 'encerrada' AND o.data >= CURRENT_DATE - 7))
+      ORDER BY (c.id IS NOT NULL) DESC, (o.status = 'ativa') DESC, (o.status = 'encerrada') DESC, o.data DESC, o.id DESC`);
+  let programada = null;
+  for (const o of r.rows) {
+    const a = numeroDaSerie(o.serie_inicial), b = numeroDaSerie(o.serie_final);
+    if (a == null) continue;
+    const ini = b == null ? a : Math.min(a, b), fim = b == null ? a : Math.max(a, b);
+    if (n < ini || n > fim) continue;
+    if (o.status === 'programada') { programada = programada || o; continue; }
+    return { ordem: o };
+  }
+  return programada ? { programada } : {};
 }
 
 async function contagem(ordemId) {
   if (!ordemId) return { ok: 0, nok: 0 };
   const r = await pool.query(
-    `SELECT COUNT(*) FILTER (WHERE serie IS NOT NULL)::int AS ok,
-            COUNT(*) FILTER (WHERE serie IS NULL AND ok = FALSE)::int AS nok
+    `SELECT COUNT(*) FILTER (WHERE ok IS NOT FALSE)::int AS ok, COUNT(*) FILTER (WHERE ok = FALSE)::int AS nok
        FROM cadc_pesagens WHERE ordem_id=$1`, [ordemId]);
   return r.rows[0];
 }
-async function ultimas(ordemId, n = 8) {
-  if (!ordemId) return [];
+/** Últimas pesagens feitas nesta estação (de qualquer célula). */
+async function ultimas(estacaoId, n = 12) {
   return (await pool.query(
-    `SELECT id, serie, peso_kg::float AS peso_kg, ok, fora_faixa,
+    `SELECT id, serie, peso_kg::float AS peso_kg, ok, celula_nome, produto_nome,
             to_char(criado_em AT TIME ZONE '${central.FUSO}', 'HH24:MI:SS') AS hora
-       FROM cadc_pesagens WHERE ordem_id=$1 ORDER BY id DESC LIMIT $2`, [ordemId, n])).rows;
+       FROM cadc_pesagens WHERE estacao_id=$1 AND criado_em > NOW() - INTERVAL '18 hours'
+      ORDER BY id DESC LIMIT $2`, [estacaoId, n])).rows.map(x => ({ ...x, id: Number(x.id) }));
 }
 
 async function estacaoDoPedido(req, deviceId) {
@@ -137,7 +165,8 @@ const falha = (res, e, onde) => {
 
 /* ═════════════════════ TELA DO NOTEBOOK ═════════════════════ */
 
-/* GET /estado?device_id=&nome=&balanca=0|1&peso= — tudo o que a tela precisa, consultado a cada 2 s */
+/* GET /estado?device_id=&nome=&balanca=0|1&peso= — tudo o que a tela precisa, consultado a cada 2 s.
+   Traz TODAS as células que estão rodando (a estação não é de nenhuma delas). */
 router.get('/estado', estacaoOuSessao, async (req, res) => {
   try {
     const { device_id } = req.query;
@@ -157,114 +186,95 @@ router.get('/estado', estacaoOuSessao, async (req, res) => {
          logado ? req.session.username || null : null]);
     }
     const token = await garantirCredencial(req, res, est.id, device_id);
-    const celulas = (await pool.query('SELECT id, nome, (ordem_id IS NOT NULL) AS rodando FROM cadc_celulas ORDER BY nome')).rows;
-
-    let celula = null, ult = [];
-    if (est.celula_id) {
-      celula = await central.umaCelula(est.celula_id);
-      if (celula) {
-        celula.faixa = faixaDoProduto(celula.produto);
-        ult = await ultimas(celula.ordem && celula.ordem.id);
-        // a grade de ciclos é pesada: só vai quando algo mudou
-        if (req.query.v && String(req.query.v) === celula.sinal) { delete celula.ciclos; delete celula.turno; delete celula.marcas; delete celula.anteriores; celula.igual = true; }
-      }
-    }
+    const celulas = (await central.carregarCelulas()).filter(c => !c.ociosa).map(c => {
+      delete c.marcas; delete c.anteriores; delete c.mensagem;
+      c.faixa = faixaDoProduto(c.produto);
+      return c;
+    });
     res.json({ ...central.relogio(), ...(token ? { token } : {}),
-               estacao: { id: est.id, nome: est.nome, celula_id: celula ? est.celula_id : null },
-               celulas, celula, ultimas: ult });
+               estacao: { id: est.id, nome: est.nome }, celulas, ultimas: await ultimas(est.id) });
   } catch (e) { falha(res, e, 'estado'); }
 });
 
-/* POST /estacao  body: { device_id, celula_id?, nome? } — o notebook escolhe a célula / muda o próprio nome */
+/* POST /estacao  body: { device_id, nome } — o notebook muda o próprio nome */
 router.post('/estacao', estacaoOuSessao, async (req, res) => {
   try {
     const b = req.body || {};
     const est = await estacaoDoPedido(req, b.device_id);
     if (!est) return res.status(404).json({ error: 'Estação ainda não registrada' });
-    if ('celula_id' in b) {
-      const id = b.celula_id ? Number(b.celula_id) : null;
-      if (id && !(await pool.query('SELECT 1 FROM cadc_celulas WHERE id=$1', [id])).rowCount) return res.status(404).json({ error: 'Célula não encontrada' });
-      await pool.query('UPDATE cadc_estacoes SET celula_id=$2 WHERE id=$1', [est.id, id]);
-    }
     if (b.nome != null && texto(b.nome, 120)) await pool.query('UPDATE cadc_estacoes SET nome=$2 WHERE id=$1', [est.id, texto(b.nome, 120)]);
     res.json({ success: true });
   } catch (e) { falha(res, e, 'estacao'); }
 });
 
-/** Célula e programação em que a estação está pesando agora (ou erro explicando por que não dá). */
-async function contexto(req, deviceId) {
-  const est = await estacaoDoPedido(req, deviceId);
-  const erro = (st, msg) => { const e = new Error(msg); e.status = st; return e; };
-  if (!est) throw erro(404, 'Estação ainda não registrada');
-  if (!est.celula_id) throw erro(409, 'Esta estação não está ligada a nenhuma célula');
-  const cel = await central.umaCelula(est.celula_id);
-  if (!cel) throw erro(409, 'A célula desta estação não existe mais');
-  if (!cel.ordem || !cel.produto) throw erro(409, 'A célula está sem programação rodando. Peça ao administrador para iniciar.');
-  return { est, cel };
-}
-
-async function gravar(est, cel, req, { serie, peso, ok, fora }) {
-  const f = faixaDoProduto(cel.produto);
+async function gravar(est, o, req, { serie, n, peso, ok, f }) {
   const r = await pool.query(
-    `INSERT INTO cadc_pesagens (celula_id, celula_nome, ordem_id, produto_id, produto_nome, cod_decio, num_op, serie,
-                                peso_kg, peso_padrao, tolerancia, ok, fora_faixa, data, turno_id, estacao_id, estacao_nome, usuario)
+    `INSERT INTO cadc_pesagens (celula_id, celula_nome, ordem_id, produto_id, produto_nome, cod_decio, num_op, serie, serie_num,
+                                peso_kg, peso_padrao, tolerancia, ok, data, turno_id, estacao_id, estacao_nome, usuario)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
      RETURNING id, to_char(criado_em AT TIME ZONE '${central.FUSO}', 'HH24:MI:SS') AS hora`,
-    [cel.id, cel.nome, cel.ordem.id, cel.produto.id, cel.produto.nome, cel.ordem.cod_decio || cel.produto.cod_decio || null,
-     cel.ordem.num_op || null, serie, arred(peso), f ? f.padrao : null, f ? f.tol : null, ok, !!fora,
-     cel.dia || cel.ordem.dia || central.dataFabrica(), cel.turno ? cel.turno.id : null, est.id, est.nome,
+    [o.celula_id, o.celula_nome, o.id, o.produto_id, o.produto_nome, o.cod_decio || o.p_cod || null, o.num_op || null, serie, n,
+     arred(peso), f ? f.padrao : null, f ? f.tol : null, ok, o.dia, o.turno_id, est.id, est.nome,
      (req.session && (req.session.nome || req.session.username)) || est.usuario || null]);
   return r.rows[0];
 }
 
-/* POST /registrar  body: { device_id, serie, peso_kg } — peso certo + série bipada = peça contada */
+/*
+ * POST /registrar  body: { device_id, serie, peso_kg }
+ * O número de série diz de qual célula é a peça. O peso é conferido com o produto dessa célula:
+ *   certo  → grava e conta para a célula;
+ *   errado → grava como "peso incorreto" (não conta) e o tablet da célula fala "Peso incorreto".
+ */
 router.post('/registrar', estacaoOuSessao, async (req, res) => {
   try {
     const b = req.body || {};
-    const { est, cel } = await contexto(req, b.device_id);
+    const est = await estacaoDoPedido(req, b.device_id);
+    if (!est) return res.status(404).json({ error: 'Estação ainda não registrada' });
     const peso = num(b.peso_kg);
     if (peso == null || peso <= 0 || peso > 99999) return res.status(400).json({ error: 'Peso inválido. Confira a balança.' });
-    const f = faixaDoProduto(cel.produto);
-    if (f && (peso < f.min - 1e-9 || peso > f.max + 1e-9)) {
-      return res.status(422).json({ error: 'Peso incorreto: não registrado.', incorreto: true });
-    }
     const serie = limparSerie(b.serie);
-    const conf = conferirSerie(serie, cel.ordem);
-    if (conf.erro) return res.status(400).json({ error: conf.erro, serie_invalida: true });
+    if (!/^[A-Z0-9][A-Z0-9\-_/.]{2,39}$/.test(serie)) return res.status(400).json({ error: 'Código lido não parece um número de série. Bipe de novo.', serie_invalida: true });
+    const n = numeroDaSerie(serie);
+    if (n == null) return res.status(400).json({ error: `O código ${serie} não tem número. Bipe a etiqueta de série.`, serie_invalida: true });
+
+    const achado = await ordemDaSerie(n);
+    if (!achado.ordem) {
+      const p = achado.programada;
+      return res.status(404).json({ sem_celula: true, numero: n, error: p
+        ? `Série ${n} é da ${p.celula_nome}, programada para ${p.dia.slice(8, 10)}/${p.dia.slice(5, 7)} — ela ainda não começou a rodar.`
+        : `Série ${n} não está na faixa de nenhuma célula. Avise o líder.` });
+    }
+    const o = achado.ordem;
+    const f = faixaDoProduto(o);
+    const info = { celula: o.celula_nome, celula_id: o.celula_id, produto: o.produto_nome, num_op: o.num_op, serie, numero: n, peso_kg: arred(peso), faixa: f };
+
+    // já contada? (mesmo número na mesma programação, ou a mesma etiqueta em qualquer lugar)
+    const ja = (await pool.query(
+      `SELECT celula_nome, to_char(criado_em AT TIME ZONE '${central.FUSO}', 'DD/MM HH24:MI') AS quando
+         FROM cadc_pesagens WHERE ok IS NOT FALSE AND ((ordem_id=$1 AND serie_num=$2) OR serie=$3) LIMIT 1`, [o.id, n, serie])).rows[0];
+    if (ja) return res.status(409).json({ ...info, duplicada: true, error: `Série ${n} já foi pesada (${ja.quando}, ${ja.celula_nome}). Não contou de novo.` });
+
+    if (f && (peso < f.min - 1e-9 || peso > f.max + 1e-9)) {
+      const linha = await gravar(est, o, req, { serie, n, peso, ok: false, f });
+      let falou = false;
+      if (o.celula_id && Date.now() - (avisoEm.get(o.celula_id) || 0) > 4000) {     // não fala um aviso em cima do outro
+        avisoEm.set(o.celula_id, Date.now());
+        await central.comando(o.celula_id, { texto: 'Peso incorreto', origem: 'balanca', por: est.nome });
+        falou = true;
+      }
+      return res.status(422).json({ ...info, incorreto: true, falou, hora: linha.hora, diferenca: arred(peso - f.padrao),
+        error: 'Peso incorreto', contagem: await contagem(o.id), ultimas: await ultimas(est.id) });
+    }
 
     let linha;
-    try {
-      linha = await gravar(est, cel, req, { serie, peso, ok: f ? true : null, fora: conf.fora_faixa });
-    } catch (e) {
+    try { linha = await gravar(est, o, req, { serie, n, peso, ok: f ? true : null, f }); }
+    catch (e) {
       if (e.code !== '23505') throw e;
-      const d = (await pool.query(
-        `SELECT celula_nome, peso_kg::float AS peso_kg, to_char(criado_em AT TIME ZONE '${central.FUSO}', 'DD/MM HH24:MI') AS quando
-           FROM cadc_pesagens WHERE serie=$1`, [serie])).rows[0] || {};
-      return res.status(409).json({ error: `Série ${serie} já foi pesada (${d.quando || '?'}${d.celula_nome ? ', ' + d.celula_nome : ''}). Não contou de novo.`, duplicada: true });
+      return res.status(409).json({ ...info, duplicada: true, error: `Série ${n} já foi pesada. Não contou de novo.` });
     }
-    res.json({ success: true, id: Number(linha.id), hora: linha.hora, serie, peso_kg: arred(peso), fora_faixa: !!conf.fora_faixa,
-               contagem: await contagem(cel.ordem.id), ultimas: await ultimas(cel.ordem.id) });
+    res.json({ success: true, ...info, id: Number(linha.id), hora: linha.hora, conferido: !!f,
+               contagem: await contagem(o.id), ultimas: await ultimas(est.id) });
   } catch (e) { falha(res, e, 'registrar'); }
-});
-
-/* POST /incorreto  body: { device_id, peso_kg } — produto com peso fora da faixa: grava e avisa os tablets da célula por voz */
-router.post('/incorreto', estacaoOuSessao, async (req, res) => {
-  try {
-    const b = req.body || {};
-    const { est, cel } = await contexto(req, b.device_id);
-    const peso = num(b.peso_kg);
-    const f = faixaDoProduto(cel.produto);
-    if (peso == null || !f) return res.status(400).json({ error: 'Sem peso para conferir' });
-    if (peso >= f.min && peso <= f.max) return res.json({ success: true, ignorado: true });
-    await gravar(est, cel, req, { serie: null, peso, ok: false, fora: false });
-    let falou = false;
-    if (Date.now() - (avisoEm.get(cel.id) || 0) > 5000) {       // não repete o aviso em cima do outro
-      avisoEm.set(cel.id, Date.now());
-      await central.comando(cel.id, { texto: 'Peso incorreto', origem: 'balanca', por: est.nome });
-      falou = true;
-    }
-    res.json({ success: true, falou, contagem: await contagem(cel.ordem.id), ultimas: await ultimas(cel.ordem.id) });
-  } catch (e) { falha(res, e, 'incorreto'); }
 });
 
 /* ═════════════════════ ADMINISTRADOR ═════════════════════ */
@@ -300,17 +310,12 @@ router.delete('/admin/pesagens/:id', requireAdmin, async (req, res) => {
   } catch (e) { falha(res, e, 'apagar'); }
 });
 
-/* PUT /admin/estacoes/:id  body: { celula_id?, nome? } — o admin liga o notebook a uma célula pelo PC */
+/* PUT /admin/estacoes/:id  body: { nome } — renomeia a estação */
 router.put('/admin/estacoes/:id', requireAdmin, async (req, res) => {
   try {
     const b = req.body || {};
     const est = (await pool.query('SELECT id FROM cadc_estacoes WHERE id=$1', [req.params.id])).rows[0];
     if (!est) return res.status(404).json({ error: 'Estação não encontrada' });
-    if ('celula_id' in b) {
-      const id = b.celula_id ? Number(b.celula_id) : null;
-      if (id && !(await pool.query('SELECT 1 FROM cadc_celulas WHERE id=$1', [id])).rowCount) return res.status(404).json({ error: 'Célula não encontrada' });
-      await pool.query('UPDATE cadc_estacoes SET celula_id=$2 WHERE id=$1', [est.id, id]);
-    }
     if (b.nome != null && texto(b.nome, 120)) await pool.query('UPDATE cadc_estacoes SET nome=$2 WHERE id=$1', [est.id, texto(b.nome, 120)]);
     res.json({ success: true });
   } catch (e) { falha(res, e, 'estacao admin'); }

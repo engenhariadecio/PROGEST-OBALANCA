@@ -47,10 +47,10 @@ body { margin: 0; background: var(--fundo); color: var(--t1); overflow: hidden; 
 .status .sub { font-size: clamp(13px, 2.6vh, 26px); color: var(--t2); font-weight: 600; max-width: 95%; }
 .status .serie { font-family: var(--mono); font-weight: 700; font-size: clamp(16px, 3.4vh, 36px); letter-spacing: .06em; min-height: 1.2em; color: var(--t1); }
 
-body[data-fase="ok"] .visor, body[data-fase="ok"] .status { background: #0c3a22; border-color: var(--ok); }
-body[data-fase="ok"] .visor .v, body[data-fase="ok"] .status .tit { color: #5cf0b0; }
-body[data-fase="registrado"] .status { background: #0c3a22; border-color: var(--ok); }
-body[data-fase="registrado"] .status .tit { color: #5cf0b0; }
+body[data-fase="pronto"] .status { background: #0d2c47; border-color: var(--info); }
+body[data-fase="pronto"] .status .tit { color: #8fd3f5; }
+body[data-fase="registrado"] .visor, body[data-fase="registrado"] .status { background: #0c3a22; border-color: var(--ok); }
+body[data-fase="registrado"] .visor .v, body[data-fase="registrado"] .status .tit { color: #5cf0b0; }
 body[data-fase="incorreto"] .visor, body[data-fase="incorreto"] .status { background: #4a1212; border-color: var(--erro); }
 body[data-fase="incorreto"] .visor .v, body[data-fase="incorreto"] .status .tit { color: #ff9c9c; }
 body[data-fase="incorreto"] .status { animation: pisca 1s steps(2) infinite; }
@@ -61,27 +61,29 @@ body[data-fase="erro"] .status .tit { color: #ff9c9c; }
 @keyframes pisca { 50% { filter: brightness(1.35); } }
 
 /* ───── direita ───── */
-.dir { display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 1.4vh; min-height: 0; }
-.nums { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4vh 1vw; }
-.num { padding: 1.4vh 1vw; text-align: center; }
-.num .v { font-family: var(--mono); font-weight: 700; line-height: 1; letter-spacing: -.04em; font-size: clamp(24px, min(4.2vw, 7.4vh), 78px); margin-top: .8vh; white-space: nowrap; }
-.num .v small { font-size: .42em; color: var(--t3); font-weight: 600; letter-spacing: 0; }
-.num .s { font-size: clamp(10px, 1.6vh, 14px); color: var(--t2); margin-top: .5vh; min-height: 1.2em; }
-.num.ok .v { color: var(--ok); } .num.ruim .v { color: var(--erro); } .num.ruim { border-color: var(--erro-bd); }
-.num.bom .v { color: var(--ok); } .num.aten .v { color: var(--alerta); }
-.barra { height: 1.2vh; background: var(--card-2); border-radius: 99px; overflow: hidden; margin-top: 1vh; }
+.dir { display: grid; grid-template-rows: minmax(0, 1.15fr) minmax(0, 1fr); gap: 1.4vh; min-height: 0; }
+.cx-lista { display: flex; flex-direction: column; }
+.cx-lista .rot { padding: 1.2vh 1vw .9vh; border-bottom: 1px solid var(--linha); flex: none; }
+.cx-lista .l { overflow-y: auto; flex: 1; min-height: 0; }
+.cel { padding: 1.1vh 1vw 1.3vh; border-bottom: 1px solid var(--linha); transition: background .3s; }
+.cel.agora { background: var(--ok-bg); }
+.cel.agora.nok { background: var(--erro-bg); }
+.cel .c1 { display: flex; align-items: baseline; gap: .8vw; }
+.cel .nm { font-family: var(--display); font-weight: 800; font-size: clamp(14px, 2.3vh, 22px); white-space: nowrap; }
+.cel .pr { flex: 1; min-width: 0; color: var(--t2); font-size: clamp(11px, 1.7vh, 15px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cel .qt { font-family: var(--mono); font-weight: 700; font-size: clamp(16px, 3vh, 30px); color: var(--ok); white-space: nowrap; }
+.cel .qt small { font-size: .55em; color: var(--t3); }
+.cel .c2 { display: flex; gap: .8vw; flex-wrap: wrap; margin-top: .4vh; font-size: clamp(10px, 1.6vh, 14px); color: var(--t2); }
+.cel .c2 b { font-family: var(--mono); color: var(--t1); }
+.cel .c2 .neg { color: var(--erro); } .cel .c2 .pos { color: var(--ok); }
+.barra { height: .8vh; background: var(--card-2); border-radius: 99px; overflow: hidden; margin-top: .7vh; }
 .barra i { display: block; height: 100%; width: 0; background: var(--fade); transition: width .5s; }
-.ritmo { padding: 1.3vh 1vw; font-size: clamp(12px, 2vh, 18px); color: var(--t2); text-align: center; font-weight: 600; }
-.ritmo b { color: var(--t1); font-family: var(--mono); }
-.hist { display: flex; flex-direction: column; }
-.hist .rot { padding: 1.2vh 1vw .9vh; border-bottom: 1px solid var(--linha); flex: none; }
-.hist .l { overflow-y: auto; flex: 1; min-height: 0; }
-.h { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0 .9vw; align-items: baseline; padding: .9vh 1vw; border-bottom: 1px solid var(--linha); font-size: clamp(12px, 2vh, 18px); }
+.h { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0 .8vw; align-items: baseline; padding: .8vh 1vw; border-bottom: 1px solid var(--linha); font-size: clamp(12px, 1.9vh, 17px); }
 .h .hr { font-family: var(--mono); color: var(--t3); }
 .h .se { font-family: var(--mono); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h .se small { font-family: var(--corpo); font-weight: 600; color: var(--t3); margin-left: .5vw; }
 .h .pe { font-family: var(--mono); color: var(--ok); font-weight: 700; }
 .h.nok .se, .h.nok .pe { color: var(--erro); }
-.h.fora .se { color: var(--alerta); }
 .vazio { padding: 3vh 1vw; text-align: center; color: var(--t3); font-size: clamp(12px, 2vh, 16px); }
 
 /* ───── telas por cima ───── */
@@ -91,11 +93,6 @@ body[data-fase="erro"] .status .tit { color: #ff9c9c; }
 .painel h2 { font-family: var(--display); font-size: 24px; margin: 0 0 6px; }
 .painel p { color: var(--t2); font-size: 14px; margin: 0 0 16px; line-height: 1.5; }
 .painel label { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--t3); font-weight: 700; display: block; margin: 14px 0 6px; }
-.cels { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
-.cels button { background: var(--card-2); border: 1px solid var(--linha); color: var(--t1); border-radius: 12px; padding: 14px; font: inherit; font-weight: 700; font-size: 16px; cursor: pointer; text-align: left; }
-.cels button small { display: block; font-weight: 600; font-size: 11px; color: var(--t3); margin-top: 4px; text-transform: uppercase; letter-spacing: .08em; }
-.cels button.atual { border-color: var(--verde); background: var(--ok-bg); }
-.cels button:hover { border-color: var(--verde); }
 .linha { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .linha .controle { flex: 1; min-width: 180px; }
 .rodape-p { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
@@ -111,7 +108,7 @@ body[data-fase="erro"] .status .tit { color: #ff9c9c; }
   #app { height: auto; min-height: 100vh; }
   .corpo { grid-template-columns: 1fr; }
   .esq { grid-template-rows: auto auto; }
-  .hist .l { max-height: 40vh; }
+  .cx-lista .l { max-height: 40vh; }
   .t-rel { display: none; }
 }
 </style>
@@ -122,8 +119,8 @@ body[data-fase="erro"] .status .tit { color: #ff9c9c; }
   <div class="topo">
     <img src="/assets/logo-decio.png" alt="Décio">
     <div class="t-meio">
-      <span class="t-cel sem" id="tCel">Sem célula</span>
-      <div class="t-prod" id="tProd">Estação de pesagem</div>
+      <span class="t-cel" id="tCel">Estação de pesagem</span>
+      <div class="t-prod" id="tProd">Pese o produto e bipe o número de série</div>
       <div class="t-det" id="tDet">Conectando…</div>
     </div>
     <div class="t-dir">
@@ -151,35 +148,23 @@ body[data-fase="erro"] .status .tit { color: #ff9c9c; }
     </div>
 
     <div class="dir">
-      <div class="nums">
-        <div class="caixa num ok">
-          <div class="rot">Pesados</div>
-          <div class="v" id="nOk">0<small> / 0</small></div>
-          <div class="barra"><i id="nBarra"></i></div>
-          <div class="s" id="nMetaTxt">meta da célula</div>
-        </div>
-        <div class="caixa num" id="cxSaldo">
-          <div class="rot">Saldo x cadência</div>
-          <div class="v" id="nSaldo">0</div>
-          <div class="s" id="nSaldoTxt">cadência previa 0</div>
-        </div>
+      <div class="caixa cx-lista">
+        <div class="rot">Células · pesados / meta · saldo x cadência</div>
+        <div class="l" id="cels"><div class="vazio">Nenhuma célula rodando agora.</div></div>
       </div>
-      <div class="caixa ritmo" id="ritmo">Takt planejado <b>—</b></div>
-      <div class="caixa hist">
-        <div class="rot">Últimas pesagens <span id="nNok" style="float:right;color:var(--erro)"></span></div>
+      <div class="caixa cx-lista">
+        <div class="rot">Últimas pesagens desta balança</div>
         <div class="l" id="lista"><div class="vazio">Nenhuma pesagem ainda.</div></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Ajustes: célula, nome da estação, balança -->
+<!-- Ajustes: nome da estação e balança -->
 <div class="cobre" id="cfg">
   <div class="painel">
     <h2>Ajustes da estação</h2>
-    <p id="cfgTxt">Escolha a célula em que esta balança está. O administrador também pode trocar pelo PC (Linha de Produção › Cadenciador central).</p>
-    <label>Célula desta balança</label>
-    <div class="cels" id="cfgCels"></div>
+    <p id="cfgTxt">Esta balança <b>não fica presa a nenhuma célula</b>. É o <b>número de série</b> bipado que diz de qual célula é a peça: ele é procurado na faixa de séries (inicial e final) que o administrador colocou em cada célula.</p>
     <label for="cfgNome">Nome desta estação (como aparece para o administrador)</label>
     <div class="linha"><input class="controle" id="cfgNome" maxlength="60" placeholder="Balança linha 1"><button class="btn btn-fantasma" id="cfgSalvarNome">Salvar nome</button></div>
     <label>Balança (cabo USB)</label>
@@ -207,7 +192,7 @@ body[data-fase="erro"] .status .tit { color: #ff9c9c; }
 <script src="/js/balanca.js?v=1"></script>
 <script>
 /* ═══════════ Estação de pesagem ═══════════
-   1. coloca o produto  →  2. peso confere com o cadastro do produto  →  3. bipa o número de série  →  4. retira o produto */
+   1. coloca o produto  →  2. bipa o número de série  →  3. o sistema acha a célula pela série e confere o peso com o produto dela  →  4. retira o produto */
 const $ = id => document.getElementById(id);
 const BASE = '/api/pesagem';
 const guarda = {
@@ -285,28 +270,23 @@ function toast(txt, bom = false, ms = 4500) {
 }
 
 /* ───────── estado ───────── */
-let EST = null, CEL = null, CELULAS = [], ULT = [], REDE_OK = false, redeFalhas = 0;
-let cont = { ok: 0, nok: 0 };
-const L = { kg: null, est: false, em: 0, iguais: 0, estavelDesde: 0 };    // leitura da balança
-const P = { fase: 'carregando', registrada: null, avisou: false, incorretoDesde: 0, enviando: false, serieErro: '' };   // produto que está na balança
-let bufSerie = '', bufEm = 0;
+let EST = null, CELULAS = [], ULT = [], REDE_OK = false, redeFalhas = 0;
+const L = { kg: null, est: false, em: 0, iguais: 0 };                    // leitura da balança
+// produto que está na balança: res = resposta do servidor ao bipe (registrado / incorreto)
+const P = { fase: 'carregando', res: null, pesoRes: null, enviando: false, erro: '' };
+let bufSerie = '', bufEm = 0, celAgora = null, celAgoraNok = false, celAgoraT = null;
 
-const faixa = () => (CEL && CEL.faixa) || null;
-const limiarVazio = () => { const f = faixa(); return f ? Math.max(0.1, f.padrao * 0.15) : 0.15; };
+const VAZIO_KG = 0.1;                                                     // abaixo disso a balança está vazia
 const balancaViva = () => SIMULAR || (bal.estado === 'lendo' && Date.now() - L.em < 2500);
 const leituraEstavel = () => L.kg != null && (L.iguais >= 4 || (L.est && L.iguais >= 2));
 
 /* ───────── balança ───────── */
 function novaLeitura({ kg: v, est }) {
-  const agora = Date.now();
-  if (L.kg != null && Math.abs(v - L.kg) < 0.0005) L.iguais++; else { L.iguais = 1; L.estavelDesde = agora; }
-  L.kg = v; L.est = !!est; L.em = agora;
+  if (L.kg != null && Math.abs(v - L.kg) < 0.0005) L.iguais++; else L.iguais = 1;
+  L.kg = v; L.est = !!est; L.em = Date.now();
   avaliar();
 }
-const bal = new Balanca({
-  aoLer: novaLeitura,
-  aoMudar: () => { pintarBalanca(); avaliar(); }
-});
+const bal = new Balanca({ aoLer: novaLeitura, aoMudar: () => { pintarBalanca(); avaliar(); } });
 function pintarBalanca() {
   const c = $('cBal'), t = $('cBalTxt');
   const e = SIMULAR ? 'lendo' : bal.estado;
@@ -318,87 +298,66 @@ function pintarBalanca() {
 $('cBal').onclick = async () => { if (SIMULAR) return; if (bal.estado === 'lendo') { abrirCfg(); return; } tom([660], 0.05); await bal.escolher(); };
 $('cfgBal').onclick = () => bal.escolher();
 
-/* ───────── máquina de estados da pesagem ───────── */
+/* ───────── máquina de estados da pesagem ─────────
+   vazia → (coloca o produto) → pesando → PRONTO: bipe a série → REGISTRADO ou PESO INCORRETO → (retira) → vazia */
 function avaliar() {
-  if (!CEL) return pintar('semcelula');
-  if (!CEL.ordem || !CEL.produto) return pintar('semprog');
-  if (!balancaViva()) { return pintar('sembalanca'); }
-  const f = faixa(), v = L.kg, agora = Date.now();
-
-  // balança vazia: acabou o produto anterior, espera o próximo
-  if (v < limiarVazio()) {
-    if (leituraEstavel() || v <= 0) { P.registrada = null; P.avisou = false; P.incorretoDesde = 0; P.serieErro = ''; }
-    return pintar(P.registrada ? 'registrado' : 'vazia');
+  if (!EST) return pintar('carregando');
+  if (!balancaViva()) return pintar('sembalanca');
+  const v = L.kg;
+  if (v < VAZIO_KG) {                                    // balança vazia: acabou este produto
+    if (leituraEstavel() || v <= 0) { P.res = null; P.pesoRes = null; P.erro = ''; }
+    return pintar(P.res && P.res.success ? 'registrado' : 'vazia');
   }
-  if (P.registrada) return pintar('registrado');
-  if (!leituraEstavel()) { P.incorretoDesde = 0; return pintar('instavel'); }
-  if (!f) return pintar('semfaixa');
-  if (v >= f.min - 1e-9 && v <= f.max + 1e-9) { P.incorretoDesde = 0; return pintar('ok'); }
-
-  // peso errado e parado: confirma por 1,2 s antes de acusar (o operador pode estar ajeitando o produto)
-  if (!P.incorretoDesde) P.incorretoDesde = agora;
-  if (agora - P.incorretoDesde < 1200) return pintar('instavel');
-  if (!P.avisou) { P.avisou = true; avisarIncorreto(v); }
-  pintar('incorreto');
+  if (P.res && P.res.success) return pintar('registrado');
+  if (!leituraEstavel()) return pintar('instavel');
+  // peso incorreto: fica na tela até o operador mexer no produto (o peso mudar)
+  if (P.res && P.res.incorreto && Math.abs(v - P.pesoRes) < 0.0005) return pintar('incorreto');
+  if (P.res && P.res.incorreto) { P.res = null; P.pesoRes = null; }
+  pintar('pronto');
 }
 setInterval(avaliar, 300);
 
-async function avisarIncorreto(v) {
-  somErro(); setTimeout(() => falar('Peso incorreto'), 700);
-  try {
-    const r = await api('POST', '/incorreto', { device_id: DEVICE, peso_kg: v });
-    if (r.contagem) cont = r.contagem;
-    if (r.ultimas) ULT = r.ultimas;
-    pintarNumeros();
-  } catch (e) { console.error(e); }
-}
-
 const TELAS = {
   carregando: ['⏳', 'Conectando…', ''],
-  semcelula:  ['🧭', 'Escolha a célula desta balança', 'Toque em “Ajustes” ou peça ao administrador para ligar esta estação a uma célula.'],
-  semprog:    ['🕒', 'Célula sem programação rodando', 'Aguardando o administrador iniciar a produção desta célula.'],
   sembalanca: ['🔌', 'Balança desligada', 'Confira se a balança está ligada e o cabo USB no computador. Toque em “Conectar balança”.'],
   vazia:      ['📦', 'Coloque o produto na balança', ''],
   instavel:   ['⚖️', 'Pesando…', 'Aguarde o peso parar.'],
-  ok:         ['✅', 'PESO CORRETO — BIPE O NÚMERO DE SÉRIE', 'Passe a coletora na etiqueta de série do produto.'],
-  semfaixa:   ['🔖', 'BIPE O NÚMERO DE SÉRIE', 'Produto sem peso cadastrado: o peso será gravado sem conferência.'],
+  pronto:     ['🔖', 'BIPE O NÚMERO DE SÉRIE', 'Passe a coletora na etiqueta de série do produto.'],
   incorreto:  ['⛔', 'PESO INCORRETO', ''],
-  registrado: ['✅', 'REGISTRADO — RETIRE O PRODUTO', '']
+  registrado: ['✅', 'PESO CORRETO — REGISTRADO', '']
 };
 function pintar(fase) {
   P.fase = fase;
   document.body.dataset.fase = fase === 'sembalanca' ? 'erro' : fase;
   const t = TELAS[fase] || TELAS.carregando;
-  let sub = t[2], serie = '';
-  const f = faixa(), v = L.kg;
+  let tit = t[1], sub = t[2], serie = '', faixaTxt = '&nbsp;', dif = '';
+  const v = L.kg, viva = balancaViva(), r = P.res;
 
-  // visor
-  const viva = balancaViva();
   $('vPeso').innerHTML = (viva && v != null ? kg(v) : '-,---') + '<small> kg</small>';
-  $('vFaixa').innerHTML = f ? `Peso do produto: <b>${kg(f.padrao)} kg</b> · aceita de <b>${kg(f.min)}</b> a <b>${kg(f.max)}</b>` : (CEL && CEL.produto ? 'Produto sem peso cadastrado' : '&nbsp;');
-  let dif = '';
-  if (f && viva && v != null && v >= limiarVazio() && leituraEstavel()) {
-    const d = v - f.padrao;
-    dif = Math.abs(d) < 0.0005 ? 'peso exato' : (d > 0 ? 'sobrando ' : 'faltando ') + kg(Math.abs(d)) + ' kg';
-  }
-  $('vDif').textContent = dif;
 
-  if (fase === 'incorreto' && f) {
-    const d = v - f.padrao;
-    sub = (d > 0 ? `Está sobrando ${kg(Math.abs(d))} kg.` : `Está faltando ${kg(Math.abs(d))} kg.`) + ' Confira o produto. Não bipe a série.';
+  if (r && (fase === 'registrado' || fase === 'incorreto')) {
+    const f = r.faixa;
+    faixaTxt = `<b>${esc(r.celula)}</b> · ${esc(r.produto || '')}` + (f ? ` · deve pesar <b>${kg(f.min)}</b> a <b>${kg(f.max)} kg</b>` : ' · produto sem peso cadastrado');
+    if (f) { const d = r.peso_kg - f.padrao; dif = Math.abs(d) < 0.0005 ? 'peso exato' : (d > 0 ? 'sobrando ' : 'faltando ') + kg(Math.abs(d)) + ' kg'; }
+    serie = r.serie;
   }
-  if (fase === 'registrado' && P.registrada) {
-    sub = `Peso ${kg(P.registrada.peso_kg)} kg gravado às ${P.registrada.hora}.` + (P.registrada.fora_faixa ? ' ⚠ Série fora da faixa da OP.' : '');
-    serie = P.registrada.serie;
+  if (fase === 'registrado' && r) {
+    if (!r.conferido) tit = 'REGISTRADO';
+    sub = `${r.celula} · peso ${kg(r.peso_kg)} kg gravado às ${r.hora}.` + (r.conferido ? '' : ' Produto sem peso cadastrado: gravado sem conferência.') + ' Retire o produto.';
   }
-  if ((fase === 'ok' || fase === 'semfaixa')) {
-    if (P.enviando) sub = 'Gravando…';
-    else if (P.serieErro) sub = '⚠ ' + P.serieErro;
+  if (fase === 'incorreto' && r && r.faixa) {
+    const d = r.peso_kg - r.faixa.padrao;
+    sub = `${r.celula}: está ${d > 0 ? 'sobrando' : 'faltando'} ${kg(Math.abs(d))} kg. Não contou. Confira o produto e bipe de novo.`;
+  }
+  if (fase === 'pronto') {
+    if (P.enviando) sub = 'Conferindo…';
+    else if (P.erro) sub = '⚠ ' + P.erro;
     serie = bufSerie;
   }
   if (fase === 'sembalanca' && bal.msgErro) sub = bal.msgErro;
   if (fase === 'sembalanca' && !Balanca.suportado) sub = 'Este navegador não lê a balança. Abra esta tela no Chrome ou no Edge.';
-  $('sIco').textContent = t[0]; $('sTit').textContent = t[1]; $('sSub').textContent = sub; $('sSerie').textContent = serie;
+  $('vFaixa').innerHTML = faixaTxt; $('vDif').textContent = dif;
+  $('sIco').textContent = t[0]; $('sTit').textContent = tit; $('sSub').textContent = sub; $('sSerie').textContent = serie;
 }
 
 /* ───────── coletora (leitor de código de barras = teclado) ───────── */
@@ -415,108 +374,110 @@ document.addEventListener('keydown', ev => {
   if (ev.key === 'Escape') { bufSerie = ''; pintar(P.fase); return; }
   if (ev.key.length === 1 && /[A-Za-z0-9\-_/.]/.test(ev.key) && bufSerie.length < 40) {
     bufSerie += ev.key.toUpperCase(); bufEm = agora;
-    if (P.fase === 'ok' || P.fase === 'semfaixa') pintar(P.fase);
+    if (P.fase === 'pronto') pintar(P.fase);
   }
 });
+
+function destacar(celId, nok) {
+  celAgora = celId; celAgoraNok = !!nok;
+  clearTimeout(celAgoraT); celAgoraT = setTimeout(() => { celAgora = null; pintarCelulas(); }, 8000);
+}
 
 async function bipou(serie) {
   if (P.enviando) return;
   const recusa = {
+    carregando: 'Aguarde a estação conectar.',
     vazia: 'Coloque o produto na balança antes de bipar.',
     instavel: 'Espere o peso parar antes de bipar.',
-    incorreto: 'Peso incorreto: a série não foi registrada.',
     registrado: 'Este produto já foi registrado. Retire-o e coloque o próximo.',
-    sembalanca: 'Balança desligada: não dá para registrar.',
-    semprog: 'A célula está sem programação rodando.',
-    semcelula: 'Escolha a célula desta balança primeiro.'
+    sembalanca: 'Balança desligada: não dá para registrar.'
   }[P.fase];
   if (recusa) { somErro(); toast(recusa); return; }
-  if (P.fase !== 'ok' && P.fase !== 'semfaixa') return;
-  const peso = L.kg;
-  P.enviando = true; P.serieErro = ''; pintar(P.fase);
+  const peso = L.kg;                      // 'pronto' ou 'incorreto' (bipou de novo sem mexer): confere com o peso de agora
+  P.enviando = true; P.erro = ''; P.res = null; pintar('pronto');
   try {
     const r = await api('POST', '/registrar', { device_id: DEVICE, serie, peso_kg: peso });
-    P.registrada = r; cont = r.contagem || cont; ULT = r.ultimas || ULT;
+    P.res = r; P.pesoRes = peso;
+    if (r.ultimas) ULT = r.ultimas;
+    aplicarContagem(r);
+    destacar(r.celula_id, false);
     somOk();
-    if (r.fora_faixa) toast('Registrado, mas a série está fora da faixa da OP. Avise o líder.', false, 7000);
   } catch (e) {
-    somErro();
-    P.serieErro = e.message;
-    toast(e.message, false, 6500);
-    if (e.dados && e.dados.duplicada) falar('Série já registrada');
+    const d = e.dados || {};
+    if (d.incorreto) {
+      P.res = d; P.pesoRes = peso;
+      if (d.ultimas) ULT = d.ultimas;
+      aplicarContagem(d);
+      destacar(d.celula_id, true);
+      somErro(); setTimeout(() => falar('Peso incorreto'), 700);
+    } else {
+      somErro();
+      P.erro = e.message;
+      toast(e.message, false, 7000);
+      if (d.duplicada) falar('Série já registrada');
+      else if (d.sem_celula) falar('Série fora da faixa');
+    }
   }
   P.enviando = false;
-  pintarNumeros(); avaliar();
+  pintarCelulas(); pintarLista(); avaliar();
+}
+function aplicarContagem(r) {
+  const c = CELULAS.find(x => x.id === r.celula_id);
+  if (c && r.contagem) c.pesagem = { ...(c.pesagem || {}), ok: r.contagem.ok, nok: r.contagem.nok };
 }
 
-/* ───────── contagem x meta x cadência ───────── */
-function pintarNumeros() {
-  const ok = cont.ok || 0;
-  let sit = { fase: 'sem-config', total: 0, feitos: 0 };
-  if (CEL && CEL.ciclos) { try { sit = Cadc.situacao(CEL, Cadc.agora()); } catch (e) { /* sem grade */ } }
-  const meta = CEL && CEL.ordem && CEL.ordem.meta > 0 ? Math.round(CEL.ordem.meta) : sit.total;
-  $('nOk').innerHTML = ok + `<small> / ${meta || '—'}</small>`;
-  $('nBarra').style.width = meta ? Math.min(100, ok / meta * 100) + '%' : '0';
-  $('nMetaTxt').textContent = meta ? (ok >= meta ? 'meta batida 🎉' : `faltam ${meta - ok} para a meta`) : 'célula sem meta';
-
-  const previsto = sit.fase === 'fora' || sit.fase === 'sem-config' ? 0 : sit.feitos;
-  const saldo = ok - previsto;
-  const cx = $('cxSaldo');
-  cx.className = 'caixa num ' + (saldo < 0 ? 'ruim' : 'bom');
-  $('nSaldo').textContent = (saldo > 0 ? '+' : '') + saldo;
-  $('nSaldoTxt').textContent = saldo < 0 ? `atrasado · cadência previa ${previsto}` : saldo > 0 ? `adiantado · cadência previa ${previsto}` : `no ritmo · cadência previa ${previsto}`;
-
-  const takt = CEL && CEL.takt_min;
-  let r = takt ? `Takt planejado <b>${String(takt).replace('.', ',')} min</b>` : 'Takt planejado <b>—</b>';
-  if (takt && ok > 0 && previsto > 0) r += ` · real <b>${(takt * previsto / ok).toFixed(1).replace('.', ',')} min</b> por peça`;
-  $('ritmo').innerHTML = r;
-
-  $('nNok').textContent = cont.nok ? `${cont.nok} peso(s) incorreto(s)` : '';
+/* ───────── células: pesados x meta x cadência ───────── */
+function pintarCelulas() {
+  const agora = Cadc.agora();
+  $('cels').innerHTML = CELULAS.length ? CELULAS.map(c => {
+    let sit = { fase: 'sem-config', total: 0, feitos: 0 };
+    try { sit = Cadc.situacao(c, agora); } catch (e) { /* sem grade */ }
+    const pz = c.pesagem || { ok: 0, nok: 0 };
+    const meta = c.ordem && c.ordem.meta > 0 ? Math.round(c.ordem.meta) : sit.total;
+    const previsto = sit.fase === 'fora' || sit.fase === 'sem-config' ? 0 : sit.feitos;
+    const saldo = pz.ok - previsto;
+    const o = c.ordem || {};
+    const fx = o.serie_inicial ? `séries <b>${esc(String(o.serie_inicial).replace(/\D/g, '').replace(/^0+(?=\d)/, ''))}</b> a <b>${esc(String(o.serie_final || '?').replace(/\D/g, '').replace(/^0+(?=\d)/, '') || '?')}</b>` : '<span class="neg">sem faixa de série — não recebe pesagem</span>';
+    return `<div class="cel${celAgora === c.id ? ' agora' + (celAgoraNok ? ' nok' : '') : ''}">
+      <div class="c1"><span class="nm">${esc(c.nome)}</span><span class="pr">${esc(c.produto ? c.produto.nome : '')}</span>
+        <span class="qt">${pz.ok}<small> / ${meta || '—'}</small></span></div>
+      <div class="barra"><i style="width:${meta ? Math.min(100, pz.ok / meta * 100) : 0}%"></i></div>
+      <div class="c2">
+        <span>${fx}</span>
+        <span>cadência previa <b>${previsto}</b></span>
+        <span>saldo <b class="${saldo < 0 ? 'neg' : 'pos'}">${saldo > 0 ? '+' : ''}${saldo}</b></span>
+        ${c.faixa ? `<span>peso <b>${kg(c.faixa.padrao)}</b> ± ${kg(c.faixa.tol)}</span>` : '<span>sem peso cadastrado</span>'}
+        ${pz.nok ? `<span class="neg">${pz.nok} peso(s) incorreto(s)</span>` : ''}
+      </div></div>`;
+  }).join('') : '<div class="vazio">Nenhuma célula rodando agora.<br>O administrador inicia em Linha de Produção › Cadenciador central.</div>';
+}
+function pintarLista() {
   $('lista').innerHTML = ULT.length ? ULT.map(u => `
-    <div class="h ${u.serie ? (u.fora_faixa ? 'fora' : '') : 'nok'}">
+    <div class="h ${u.ok === false ? 'nok' : ''}">
       <span class="hr">${esc(u.hora)}</span>
-      <span class="se">${u.serie ? esc(u.serie) : 'PESO INCORRETO'}</span>
+      <span class="se">${esc(u.serie || '—')}<small>${esc(u.celula_nome || '')}${u.ok === false ? ' · PESO INCORRETO' : ''}</small></span>
       <span class="pe">${kg(u.peso_kg)} kg</span>
     </div>`).join('') : '<div class="vazio">Nenhuma pesagem ainda.</div>';
 }
-
 function pintarTopo() {
-  const c = $('tCel');
-  if (!CEL) { c.textContent = 'Sem célula'; c.className = 't-cel sem'; $('tProd').textContent = EST ? EST.nome : 'Estação de pesagem'; $('tDet').textContent = 'Escolha a célula em Ajustes'; return; }
-  c.textContent = CEL.nome; c.className = 't-cel';
-  $('tProd').textContent = CEL.produto ? CEL.produto.nome : 'Sem programação';
-  const o = CEL.ordem, p = [];
-  if (o && o.num_op) p.push('OP ' + o.num_op);
-  if (o && o.serie_inicial) p.push('Séries ' + o.serie_inicial + (o.serie_final ? ' a ' + o.serie_final : ''));
-  if (CEL.turno) p.push(CEL.turno.nome);
-  if (CEL.pausada) p.push('⏸ LINHA PAUSADA');
-  $('tDet').textContent = p.join(' · ') || (EST ? EST.nome : '');
+  $('tCel').textContent = EST ? EST.nome : 'Estação de pesagem';
+  const n = CELULAS.length;
+  $('tDet').textContent = n ? `${n} célula${n === 1 ? '' : 's'} rodando · a série bipada diz de qual célula é a peça` : 'Nenhuma célula rodando agora';
 }
 
 /* ───────── consulta ao servidor (a cada 2 s) ───────── */
-let consultando = false, guardado = {};
+let consultando = false;
 async function consultar() {
   if (consultando) return; consultando = true;
   try {
     const q = new URLSearchParams({ device_id: DEVICE, balanca: balancaViva() ? '1' : '0' });
     if (balancaViva() && L.kg != null) q.set('peso', L.kg);
-    if (CEL && CEL.sinal) q.set('v', CEL.sinal);
     const t0 = performance.now();
     const r = await api('GET', '/estado?' + q);
     Cadc.acertar(r, t0, performance.now());
-    EST = r.estacao; CELULAS = r.celulas || [];
-    let c = r.celula;
-    if (c && c.igual && CEL && CEL.id === c.id) c = { ...c, ciclos: guardado.ciclos, turno: guardado.turno };
-    else if (c) guardado = { ciclos: c.ciclos, turno: c.turno };
-    const trocou = (CEL && CEL.id) !== (c && c.id) || (CEL && CEL.ordem && CEL.ordem.id) !== (c && c.ordem && c.ordem.id);
-    CEL = c || null;
-    if (trocou) { P.registrada = null; P.avisou = false; P.serieErro = ''; }
-    if (CEL && CEL.pesagem && !P.enviando) cont = { ok: CEL.pesagem.ok, nok: CEL.pesagem.nok };
-    if (!CEL) cont = { ok: 0, nok: 0 };
-    ULT = r.ultimas || [];
+    EST = r.estacao;
+    if (!P.enviando) { CELULAS = r.celulas || []; ULT = r.ultimas || []; }
     REDE_OK = true; redeFalhas = 0;
-    if (!EST.celula_id && !$('cfg').classList.contains('ativo') && !guarda.ler('est_viu_cfg')) { guarda.por('est_viu_cfg', '1'); abrirCfg(); }
-    if ($('cfg').classList.contains('ativo')) pintarCfg();
   } catch (e) {
     if (++redeFalhas >= 2) REDE_OK = false;
   }
@@ -524,23 +485,13 @@ async function consultar() {
   const cr = $('cRede');
   cr.className = 'chip ' + (REDE_OK ? 'ok' : 'erro');
   $('cRedeTxt').textContent = REDE_OK ? 'Sistema ligado' : 'Sem conexão';
-  pintarTopo(); pintarNumeros(); avaliar();
+  pintarTopo(); pintarCelulas(); pintarLista(); avaliar();
 }
 setInterval(consultar, 2000);
-Cadc.aCadaSegundo(() => { $('tRel').textContent = Cadc.agora(); if (new Date().getSeconds() % 5 === 0) pintarNumeros(); });
+Cadc.aCadaSegundo(() => { $('tRel').textContent = Cadc.agora(); if (new Date().getSeconds() % 5 === 0) pintarCelulas(); });
 
 /* ───────── ajustes ───────── */
-function abrirCfg() { $('cfgNome').value = EST ? EST.nome || '' : ''; pintarCfg(); $('cfg').classList.add('ativo'); }
-function pintarCfg() {
-  $('cfgCels').innerHTML = CELULAS.length ? CELULAS.map(c => `
-    <button data-id="${c.id}" class="${EST && EST.celula_id === c.id ? 'atual' : ''}">${esc(c.nome)}<small>${c.rodando ? 'produzindo' : 'sem programação'}${EST && EST.celula_id === c.id ? ' · esta estação' : ''}</small></button>`).join('')
-    : '<div class="vazio">Nenhuma célula criada ainda. O administrador cria em Linha de Produção › Cadenciador central.</div>';
-  $('cfgCels').querySelectorAll('button').forEach(b => b.onclick = async () => {
-    try { await api('POST', '/estacao', { device_id: DEVICE, celula_id: Number(b.dataset.id) }); await consultar(); $('cfg').classList.remove('ativo'); }
-    catch (e) { toast(e.message); }
-  });
-  pintarBalanca();
-}
+function abrirCfg() { $('cfgNome').value = EST ? EST.nome || '' : ''; pintarBalanca(); $('cfg').classList.add('ativo'); }
 $('cCfg').onclick = abrirCfg;
 $('cRede').onclick = consultar;
 $('cfgFechar').onclick = () => $('cfg').classList.remove('ativo');

@@ -444,10 +444,10 @@ body.adm #tab-central{display:inline-block}
       <div class="card">
         <div class="card-title">⚖️ Estações de pesagem (notebook + balança + coletora)</div>
         <div style="overflow:auto"><table class="cc-tabela">
-          <thead><tr><th>Estação</th><th>Situação</th><th>Balança</th><th>Célula</th><th>Ações</th></tr></thead>
+          <thead><tr><th>Estação</th><th>Situação</th><th>Balança</th><th>Usuário</th><th>Ações</th></tr></thead>
           <tbody id="cc-estacoes"><tr><td colspan="5" style="color:var(--text2)">Nenhuma estação ainda.</td></tr></tbody>
         </table></div>
-        <div style="font-size:12px;color:var(--text2);margin-top:8px">O notebook pesa o produto, confere com o <b>peso cadastrado no produto</b> e pede para bipar o número de série. Peso errado = o tablet da célula fala <b>“Peso incorreto”</b>.</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:8px">A balança <b>não fica presa a nenhuma célula</b>. O operador pesa e bipa o número de série; o sistema olha <b>só os números</b> da série (JSF0000433645 = 433645), acha a célula cuja <b>faixa de séries (inicial a final)</b> contém esse número, confere o peso com o produto dessa célula e conta a peça para ela. Peso errado = o tablet dessa célula fala <b>“Peso incorreto”</b>.</div>
       </div>
 
       <div class="card">
@@ -816,7 +816,7 @@ function cadcRender(forcar) {
   const assin = JSON.stringify([
     v.celulas.map(c => [c.id, c.sinal || c.versao]),
     v.tablets.map(t => [t.id, t.nome, t.celula_id, t.online, t.som_ok, t.usuario]),
-    (v.estacoes || []).map(e => [e.id, e.nome, e.celula_id, e.online, e.balanca_ok]),
+    (v.estacoes || []).map(e => [e.id, e.nome, e.online, e.balanca_ok, e.usuario]),
     v.programadas.map(o => [o.id, o.updated_at]), v.pendentes.map(o => [o.id, o.updated_at, o.ciclos_ok, o.ciclos_nok]),
     v.enviadas.map(o => o.id), v.hoje
   ]);
@@ -1001,7 +1001,8 @@ function ccPesTxt(c, s) {
   const meta = c.ordem && c.ordem.meta > 0 ? Math.round(c.ordem.meta) : s.total;
   const previsto = s.fase === 'fora' || s.fase === 'sem-config' ? 0 : s.feitos;
   const saldo = pz.ok - previsto;
-  const ests = (ccVisao.estacoes || []).filter(e => e.celula_id === c.id);
+  const ests = ccVisao.estacoes || [];       // a balança não é de nenhuma célula: a série bipada é que liga a pesagem à célula
+  const o = c.ordem || {}, soNum = x => String(x || '').replace(/\D/g, '').replace(/^0+(?=\d)/, '');
   const p = c.produto || {};
   const l1 = [`⚖️ Pesados <b>${pz.ok}</b>${meta ? ' / ' + meta : ''}`,
     `cadência previa <b>${previsto}</b>`,
@@ -1009,7 +1010,8 @@ function ccPesTxt(c, s) {
   if (pz.nok) l1.push(`<b class="neg">${pz.nok} peso(s) incorreto(s)</b>`);
   if (pz.ultima) l1.push(`última ${pz.ultima.slice(0, 5)}`);
   const l2 = [p.peso_kg ? `Peso do produto <b>${kg(p.peso_kg)} kg</b>${p.peso_tol_kg != null ? ' ± ' + kg(p.peso_tol_kg) : ''}` : '<span class="neg">produto sem peso cadastrado</span>',
-    ests.length ? ests.map(e => `${esc(e.nome || 'Balança')}: ${e.online ? (e.balanca_ok ? '🟢 lendo' + (e.ultimo_peso != null ? ' ' + kg(e.ultimo_peso) + ' kg' : '') : '🟡 tela aberta, balança desligada') : '🔴 sem sinal'}`).join(' · ') : 'sem estação de pesagem'];
+    o.serie_inicial ? `recebe as séries <b>${soNum(o.serie_inicial)}</b> a <b>${soNum(o.serie_final) || '?'}</b>` : '<span class="neg">sem faixa de série: não recebe pesagem</span>',
+    ests.length ? ests.map(e => `${esc(e.nome || 'Balança')}: ${e.online ? (e.balanca_ok ? '🟢 lendo' : '🟡 balança desligada') : '🔴 sem sinal'}`).join(' · ') : 'nenhuma estação de pesagem ligada'];
   return l1.join(' · ') + '<br>' + l2.join(' · ');
 }
 
@@ -1025,10 +1027,7 @@ function cadcDesenharEstacoes() {
       <td><b>${esc(e.nome || 'Balança')}</b></td>
       <td>${e.online ? '<span class="badge green">Online</span>' : '<span class="badge red">Sem sinal</span>'}</td>
       <td>${!e.online ? '—' : e.balanca_ok ? '🟢 lendo' + (e.ultimo_peso != null ? ' · ' + Number(e.ultimo_peso).toLocaleString('pt-BR', { minimumFractionDigits: 3 }) + ' kg' : '') : '🟡 desligada / sem cabo'}</td>
-      <td><select onchange="cadcEstacaoMover(${e.id}, this.value)">
-            <option value="">— sem célula —</option>
-            ${v.celulas.map(c => `<option value="${c.id}"${e.celula_id === c.id ? ' selected' : ''}>${esc(c.nome)}</option>`).join('')}
-          </select></td>
+      <td>${esc(e.usuario || '—')}</td>
       <td style="white-space:nowrap">
         <button class="btn-sm btn-ghost" onclick="cadcEstacaoRenomear(${e.id})">✏️</button>
         <button class="btn-sm btn-ghost" title="Apagar esta estação da lista" onclick="cadcEstacaoApagar(${e.id})">🗑️</button>
@@ -1745,9 +1744,6 @@ let ccPe = null, ccPsId = null;
 const ccNum = v => { const x = parseFloat(String(v == null ? '' : v).replace(',', '.')); return Number.isFinite(x) ? x : null; };
 const ccKg = n => n == null ? '—' : Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
-function cadcEstacaoMover(id, celulaId) {
-  cadcAcao(() => api(PES + '/admin/estacoes/' + id, { method: 'PUT', body: { celula_id: celulaId ? Number(celulaId) : null } }), celulaId ? 'Estação ligada à célula' : 'Estação sem célula');
-}
 function cadcEstacaoRenomear(id) {
   const e = (ccVisao.estacoes || []).find(x => x.id === id); if (!e) return;
   const nome = prompt('Nome da estação de pesagem:', e.nome || ''); if (!nome || !nome.trim()) return;
@@ -1800,15 +1796,15 @@ async function cadcPesagensCarregar() {
   const dia = ccV('cc-pe-dia') || ccVisao.hoje;
   try { ccPe.linhas = await api(PES + `/admin/lista?celula_id=${ccPe.celula.id}&dia=${dia}`); ccPe.dia = dia; }
   catch (e) { return toast(e.message, 'error'); }
-  const ok = ccPe.linhas.filter(l => l.serie).length, nok = ccPe.linhas.filter(l => !l.serie && l.ok === false).length;
+  const ok = ccPe.linhas.filter(l => l.ok !== false).length, nok = ccPe.linhas.filter(l => l.ok === false).length;
   document.getElementById('cc-pe-ok').textContent = ok + ' pesado(s)';
   document.getElementById('cc-pe-nok').textContent = nok + ' peso(s) incorreto(s)';
-  const pesos = ccPe.linhas.filter(l => l.serie).map(l => l.peso_kg);
+  const pesos = ccPe.linhas.filter(l => l.ok !== false).map(l => l.peso_kg);
   document.getElementById('cc-pe-info').textContent = pesos.length ? `peso médio ${ccKg(pesos.reduce((a, b) => a + b, 0) / pesos.length)} kg · menor ${ccKg(Math.min(...pesos))} · maior ${ccKg(Math.max(...pesos))}` : '';
   document.getElementById('cc-pe-corpo').innerHTML = ccPe.linhas.length ? ccPe.linhas.map(l => `
     <tr>
       <td>${esc(l.hora)}</td>
-      <td class="${l.serie ? '' : 'nok'}"><b>${l.serie ? esc(l.serie) : '— não bipado —'}</b></td>
+      <td class="${l.ok === false ? 'nok' : ''}"><b>${l.serie ? esc(l.serie) : '— não bipado —'}</b></td>
       <td class="${l.ok === false ? 'nok' : ''}"><b>${ccKg(l.peso_kg)} kg</b></td>
       <td>${l.peso_padrao != null ? ccKg(l.peso_padrao) + ' ± ' + ccKg(l.tolerancia) : 'sem cadastro'}</td>
       <td>${l.ok === false ? '<span class="badge red">Peso incorreto</span>' : l.fora_faixa ? '<span class="badge yellow">Série fora da faixa da OP</span>' : l.ok === true ? '<span class="badge green">Peso correto</span>' : '<span class="badge blue">Sem conferência</span>'}</td>
@@ -1820,7 +1816,7 @@ async function cadcPesagensCarregar() {
 }
 async function cadcPesagemApagar(id) {
   const l = ccPe.linhas.find(x => x.id === id); if (!l) return;
-  if (!confirm(l.serie ? `Apagar a pesagem da série ${l.serie}? Ela deixa de contar e pode ser pesada de novo.` : 'Apagar este registro de peso incorreto?')) return;
+  if (!confirm(l.ok !== false ? `Apagar a pesagem da série ${l.serie}? Ela deixa de contar e pode ser pesada de novo.` : 'Apagar este registro de peso incorreto?')) return;
   try { await api(PES + '/admin/pesagens/' + id, { method: 'DELETE' }); toast('Pesagem apagada'); cadcPesagensCarregar(); cadcAtualizar(true); }
   catch (e) { toast(e.message, 'error'); }
 }

@@ -196,24 +196,29 @@ tabelas `cadc_*` (inclui `cadc_ciclos`) em `db/schema.js` (criadas sozinhas ao i
 Um notebook na linha, com a **balança Urano** e a **coletora** (leitor de código de barras) ligadas por USB.
 A tela fica em **`/pesagem`** (Portal › *Estação de Pesagem*) e precisa do **Chrome ou Edge**.
 
+**A balança não fica presa a nenhuma célula.** Quem liga a pesagem à célula é o **número de série** bipado:
+só os números contam (`JSF0000433645` = `433645`) e ele é procurado na **faixa de séries (inicial e final)** de cada
+célula que está rodando. A peça vai para a célula que tem esse número na faixa.
+
 **Processo do operador**
 
 1. Coloca o produto na balança — o peso aparece em tempo real.
-2. O sistema compara com o **peso cadastrado no produto** (± tolerância):
-   - **verde** → “PESO CORRETO — BIPE O NÚMERO DE SÉRIE”;
-   - **vermelho** → “PESO INCORRETO” (mostra quanto falta ou sobra) e o **tablet da célula fala “Peso incorreto”**.
-3. Bipa a etiqueta de série → a pesagem é gravada (célula, OP, produto, série, peso, hora) e a peça é contada.
+2. Com o peso parado, a tela pede: **“BIPE O NÚMERO DE SÉRIE”**.
+3. Ao bipar, o sistema acha a célula pela série e confere o peso com o **peso cadastrado no produto dessa célula** (± tolerância):
+   - **verde** → “PESO CORRETO — REGISTRADO”: grava célula, OP, produto, série, peso e hora, e conta a peça;
+   - **vermelho** → “PESO INCORRETO” (mostra quanto falta ou sobra), **não conta**, e o **tablet dessa célula fala “Peso incorreto”**.
+     Depois de corrigir o produto, é só bipar de novo.
 4. Retira o produto; a tela volta a pedir o próximo.
 
-**Onde cadastrar o peso do produto**: Administração › Cadenciador › produto (*Peso do produto* e *Tolerância ±*), ou no
+Série fora da faixa de todas as células é recusada; série já pesada não conta de novo.
+
+**Onde cadastrar o peso do produto**: Administração › Takt Times › produto (*Peso do produto* e *Tolerância ±*), ou no
 cartão da célula em Linha de Produção › Cadenciador central › **⚖️ Peso do produto**. Sem tolerância informada vale 2 % do peso
 (mínimo 0,050 kg). Produto sem peso: a estação grava o peso lido sem conferir.
 
-**Ligação com a célula**: a estação é ligada a uma célula do Cadenciador central (pelo próprio notebook, em *Ajustes*, ou pelo PC do
-admin na tabela *Estações de pesagem*). A série bipada é conferida com a faixa de séries da OP da célula; série repetida não conta de novo.
-
-**Contagem x meta x cadência**: a estação e o cartão da célula mostram *pesados / meta*, quantas peças a cadência (takt) previa até
-agora e o saldo (adiantado / atrasado). Em **📋 Pesagens** o admin vê, apaga e exporta (CSV) as pesagens do dia.
+**Contagem x meta x cadência**: a estação lista todas as células rodando com *pesados / meta*, quantas peças a cadência (takt)
+previa até agora e o saldo (adiantado / atrasado); o cartão da célula mostra o mesmo. Em **📋 Pesagens** o admin vê, apaga e
+exporta (CSV) as pesagens do dia.
 
 **Balança**: leitura pela porta USB com Web Serial (`public/js/balanca.js`), 9600 bps 8N2, pedindo o peso várias vezes por segundo.
 Funciona com o cabo Urano / conversor USB-TTL (sinal normal) e com o kit Novus USB-i485 (sinal invertido, decifrado no programa).
