@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProGestão – Linha de Produção</title>
+<style>
+:root{--bg:#0A1620;--card:#14293A;--card2:#1A3347;--accent:#26B247;--accent2:#1C4984;--green:#34D399;--yellow:#F0B429;--red:#F26D6D;--orange:#E88C4A;--blue:#56B6E0;--purple:#1D6574;--text:#EAF4F1;--text2:#A2BCC3;--border:#1E3D52;--radius:12px;--panel:#14293A;--panel2:#1A3347;--fade:linear-gradient(135deg,#26B247 0%,#1D6574 55%,#1C4984 100%)}
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+body{background:var(--bg);color:var(--text);min-height:100vh}
+.topbar{background:var(--panel);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar .logo{font-size:18px;font-weight:700;color:var(--accent)}
+.topbar .user-info{display:flex;align-items:center;gap:16px;font-size:13px}
+.topbar .clock{color:var(--text2)}
+.topbar .btn-logout{background:var(--red);color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600}
+.layout{display:flex;min-height:calc(100vh - 56px)}
+.sidebar{width:220px;background:var(--panel);border-right:1px solid var(--border);padding:20px 0;flex-shrink:0}
+.sidebar a{display:block;padding:10px 24px;color:var(--text2);text-decoration:none;font-size:14px;border-left:3px solid transparent;transition:all .2s}
+.sidebar a:hover{background:var(--panel2);color:var(--text)}
+.sidebar a.active{background:var(--panel2);color:var(--accent);border-left-color:var(--accent)}
+.main{flex:1;padding:24px;overflow-x:auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px}
+.kpi .lbl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.kpi .val{font-size:24px;font-weight:700;color:var(--text)}
+.kpi.green .val{color:var(--accent)}
+.kpi.blue .val{color:var(--blue)}
+.kpi.orange .val{color:var(--orange)}
+.kpi.red .val{color:var(--red)}
+.kpi.yellow .val{color:var(--yellow)}
+.tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.tab{background:transparent;border:none;color:var(--text2);padding:10px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:2px solid transparent;transition:all .2s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.section{display:none}
+.section.show{display:block}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:18px;margin-bottom:16px}
+.card-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:12px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.form-group input,.form-group select,.form-group textarea{background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px;outline:none;transition:border-color .2s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent)}
+.form-group input.invalid{border-color:var(--red)}
+.form-group input.valid{border-color:var(--accent)}
+.form-group input[readonly]{background:#0d1419;color:var(--text2);cursor:not-allowed}
+.form-group textarea{min-height:60px;resize:vertical;font-family:inherit}
+.form-group small.hint{font-size:10px;color:var(--text2)}
+.form-group small.hint.error{color:var(--red)}
+.btn-sm{padding:8px 14px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;transition:opacity .2s}
+.btn-sm:hover{opacity:.85}
+.btn-sm:disabled{opacity:.4;cursor:not-allowed}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-orange{background:var(--orange);color:#fff}
+.btn-red{background:var(--red);color:#fff}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+table th{background:var(--panel2);color:var(--text2);text-align:left;padding:10px 8px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;font-size:11px;border-bottom:1px solid var(--border)}
+table td{padding:9px 8px;border-bottom:1px solid var(--border);color:var(--text)}
+table tr:hover{background:var(--panel2)}
+.badge{display:inline-block;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.badge.green{background:rgba(63,185,80,.15);color:var(--accent)}
+.badge.blue{background:rgba(88,166,255,.15);color:var(--blue)}
+.badge.orange{background:rgba(240,136,62,.15);color:var(--orange)}
+.badge.red{background:rgba(248,81,73,.15);color:var(--red)}
+.badge.yellow{background:rgba(210,153,34,.15);color:var(--yellow)}
+.badge.purple{background:rgba(163,113,247,.15);color:var(--purple)}
+#toast{position:fixed;bottom:20px;right:20px;background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--accent);padding:12px 18px;border-radius:6px;color:var(--text);font-size:13px;z-index:1000;opacity:0;transform:translateY(20px);transition:all .3s;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:360px}
+#toast.show{opacity:1;transform:translateY(0)}
+#toast.error{border-left-color:var(--red)}
+#toast.warn{border-left-color:var(--yellow)}
+.autocomplete{position:relative}
+.autocomplete-list{position:absolute;top:100%;left:0;right:0;background:var(--panel);border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;max-height:240px;overflow-y:auto;z-index:50;display:none}
+.autocomplete-list.show{display:block}
+.autocomplete-item{padding:8px 10px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)}
+.autocomplete-item:hover{background:var(--panel2)}
+.autocomplete-item:last-child{border-bottom:none}
+.autocomplete-item strong{color:var(--accent)}
+@media(max-width:768px){.sidebar{width:60px}.sidebar a{padding:10px;text-align:center;font-size:10px}}
+
+/* ===== Dashboard ===== */
+.dash-filtros{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.dash-filtros .form-group{min-width:130px}
+.dash-filtros select,.dash-filtros input{background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:13px}
+.dash-resumo{font-size:12px;color:var(--text2);margin-bottom:14px}
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px}
+.chart-box{position:relative;height:260px}.chart-box.tall{height:340px}
+.chart-box[data-vazio]::after{content:attr(data-vazio);position:absolute;inset:0;display:grid;place-items:center;color:var(--text2);font-size:13px;text-align:center;padding:20px}
+.chart-nota{font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5}
+.kpi-sub{font-size:10px;color:var(--text2);margin-top:4px}
+@media(max-width:768px){.dash-grid{grid-template-columns:1fr}.chart-box{height:230px}.chart-box.tall{height:280px}}
+
+/* ===== Observações do status ===== */
+.obs-btn{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:3px 8px;border-radius:10px;border:1px solid var(--border);background:var(--card2,#1A3347);color:var(--text2);font-size:11px;font-weight:700;cursor:pointer;vertical-align:middle}
+.obs-btn.tem{border-color:var(--orange,#E88C4A);color:var(--orange,#E88C4A);background:rgba(232,140,74,.12)}
+.obs-btn:hover{border-color:var(--accent);color:var(--accent)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:999;align-items:center;justify-content:center}.modal-overlay.show{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px;max-width:640px;width:94%;max-height:88vh;overflow-y:auto}
+.modal h3{margin-bottom:4px;font-size:1rem}.modal .sub{font-size:.8rem;color:var(--text2);margin-bottom:14px}
+.obs-item{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:var(--card2,#1A3347)}
+.obs-item .cab{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.75rem;color:var(--text2);margin-bottom:6px;flex-wrap:wrap}
+.obs-item .txt{white-space:pre-wrap;font-size:.9rem;line-height:1.5}
+.obs-nova textarea{width:100%;min-height:80px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--card2,#1A3347);color:var(--text);font-family:inherit;font-size:.9rem;resize:vertical}
+.modal .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+
+/* ===== Perfil PCP: somente visualização ===== */
+body.pcp .so-edicao, body.pcp .tab[onclick*="'apontar'"], body.pcp #sec-apontar,
+body.pcp .btn-red, body.pcp button[onclick^="editar"], body.pcp button[onclick^="excluir"], body.pcp button[onclick^="salvar"],
+body.pcp .sidebar a:not([href="/progestao/producao"]):not([href="/progestao/linha-producao"]):not([href="/progestao/produtos"]), body.pcp .voltar-portal{display:none!important}
+body.pcp .logo a{pointer-events:none}
+.pcp-aviso{display:none;background:rgba(232,140,74,.12);border:1px solid var(--orange,#E88C4A);border-radius:8px;padding:8px 14px;margin-bottom:14px;font-size:.85rem}
+body.pcp .pcp-aviso{display:block}
+</style>
+<link rel="icon" href="/assets/logo-decio.png">
+
+<style>
+/* ===== Tema Décio — sobreposição sobre o CSS original do módulo ===== */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+body{font-family:'Inter','Segoe UI',system-ui,sans-serif}
+h1,h2,h3,.logo{font-family:'Manrope','Segoe UI',system-ui,sans-serif;letter-spacing:-.02em}
+
+.fita-marca{position:fixed;top:0;left:0;right:0;height:3px;background:var(--fade);z-index:9999}
+
+.btn-primary,.btn-accent{
+  background:var(--fade)!important;color:#fff!important;border:none!important;
+  box-shadow:0 2px 12px rgba(38,178,71,.22)}
+.btn-primary:hover,.btn-accent:hover{filter:brightness(1.06);transform:translateY(-1px)}
+.btn-green{background:var(--green)!important;color:#062B1E!important}
+.btn-warning{background:var(--yellow)!important;color:#2B1E00!important}
+
+a{color:var(--accent)}
+.topbar{border-bottom:1px solid var(--border)}
+.logo-decio{height:26px;width:26px;border-radius:7px;vertical-align:-7px;margin-right:8px}
+.voltar-portal{
+  display:inline-flex;align-items:center;gap:6px;padding:6px 12px;margin-right:6px;
+  border:1px solid var(--border);border-radius:8px;background:var(--card2);
+  color:var(--text2)!important;font-size:12px;font-weight:600;text-decoration:none}
+.voltar-portal:hover{background:var(--panel2);color:var(--text)!important}
+
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:#2C5570;border-radius:99px}
+:focus-visible{outline:2px solid #35C95C;outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+<style>
+/* ===== Linha de Produção ===== */
+.dia-barra{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px}
+.dia-barra input[type=date]{background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:14px;font-weight:600}
+.dia-barra .dia-nome{font-size:15px;font-weight:700;margin-right:auto}
+.dia-barra .dia-nome small{display:block;font-size:11px;font-weight:500;color:var(--text2)}
+.dia-aviso{background:rgba(86,182,224,.1);border:1px solid var(--blue);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.dia-aviso.salvo{background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.5)}
+.dia-aviso.sujo{background:rgba(240,180,41,.1);border-color:var(--yellow)}
+.cel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+.cel-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;transition:border-color .2s,opacity .2s}
+.cel-card.on{border-color:rgba(38,178,71,.6);box-shadow:inset 3px 0 0 var(--accent)}
+.cel-card.off{opacity:.62}
+.cel-cab{display:flex;align-items:flex-start;gap:10px}
+.cel-cab .nm{flex:1;min-width:0}
+.cel-cab .nm strong{font-size:15px;display:block}
+.cel-cab .nm span{font-size:11px;color:var(--text2)}
+.chave{position:relative;display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:700;color:var(--text2);user-select:none;white-space:nowrap}
+.chave input{position:absolute;opacity:0;width:0;height:0}
+.chave .trilho{width:40px;height:22px;border-radius:99px;background:var(--panel2);border:1px solid var(--border);position:relative;transition:.2s}
+.chave .trilho::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--text2);transition:.2s}
+.chave input:checked + .trilho{background:var(--accent);border-color:var(--accent)}
+.chave input:checked + .trilho::after{left:20px;background:#fff}
+.chave input:checked ~ .rot{color:var(--accent)}
+.chave input:focus-visible + .trilho{outline:2px solid #35C95C;outline-offset:2px}
+.cel-campos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cel-campos .full{grid-column:1/-1}
+.cel-campos .form-group{min-width:0}
+.cel-campos .form-group input,.cel-campos .form-group select{width:100%;min-width:0}
+.cel-campos .form-group input,.cel-campos .form-group select{padding:7px 9px;font-size:13px}
+.cel-desc{font-size:12px;color:var(--text2);min-height:16px;margin-top:-2px}
+.cel-desc.erro{color:var(--yellow)}
+.cel-info{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.cel-info div{background:var(--panel2);border-radius:6px;padding:6px 8px;font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.3px}
+.cel-info b{display:block;font-size:14px;color:var(--text);text-transform:none;letter-spacing:0;margin-top:2px}
+.cel-off-msg{font-size:12px;color:var(--text2);padding:4px 0}
+.barra-salvar{position:sticky;bottom:0;background:linear-gradient(180deg,transparent,var(--bg) 30%);padding:18px 0 6px;margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;z-index:5}
+.barra-salvar .resumo{font-size:12px;color:var(--text2);margin-left:auto}
+.hist-filtros{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:12px}
+.hist-filtros .form-group{min-width:140px}
+.hist-filtros input,.hist-filtros select{background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:13px}
+.quadro{overflow:auto}
+.quadro td,.quadro th{white-space:nowrap}
+.quadro td.q{font-size:11px;min-width:110px}
+.quadro td.q b{display:block;font-size:12px}
+.quadro td.q.vazio{color:var(--text2);opacity:.5}
+.quadro td.q.on{background:rgba(38,178,71,.08)}
+body.pcp .cel-card input,body.pcp .cel-card select,body.pcp .chave{pointer-events:none}
+@media(max-width:768px){.cel-grid{grid-template-columns:1fr}.cel-info{grid-template-columns:1fr 1fr}.kpis{grid-template-columns:1fr 1fr}.kpi .val{font-size:19px}}
+</style>
+<style>
+/* ===== Cadenciador central (células controladas pelo PC do admin) ===== */
+.cc-barra{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px}
+.cc-barra .cc-todas{display:flex;gap:8px;flex:1;min-width:280px}
+.cc-barra input[type=text]{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px}
+.cc-barra .cc-resumo{font-size:12px;color:var(--text2);white-space:nowrap}
+.cc-barra a{color:var(--blue);font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap}
+.cc-ajuda{background:rgba(86,182,224,.08);border:1px solid rgba(86,182,224,.4);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--text2);line-height:1.5}
+.cc-ajuda b{color:var(--text)}
+.cc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:14px;margin-bottom:16px}
+.cc-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:11px;box-shadow:inset 3px 0 0 var(--accent)}
+.cc-card.pausada{border-color:rgba(242,109,109,.6);box-shadow:inset 3px 0 0 var(--red)}
+.cc-card.fora{box-shadow:inset 3px 0 0 var(--border)}
+.cc-cab{display:flex;align-items:center;gap:8px}
+.cc-cab strong{font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cc-ico{background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px}
+.cc-ico:hover{color:var(--text);border-color:var(--text2)}
+.cc-vivo{display:grid;grid-template-columns:1.55fr 1fr;grid-template-rows:1fr 1fr;gap:6px}
+.cc-vivo>div{background:var(--panel2);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;min-width:0;position:relative;overflow:hidden}
+.cc-vivo b{display:block;font-size:19px;color:var(--text);text-transform:none;letter-spacing:0;margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-vivo small{display:block;font-size:10px;text-transform:none;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-vivo .cc-prox{grid-row:1/-1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:10px 10px 14px;border:1px solid var(--border)}
+.cc-vivo .cc-prox span{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.cc-vivo .cc-prox b{font-size:54px;line-height:1.05;font-weight:800;letter-spacing:-1.5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;margin-top:2px;overflow:visible}
+.cc-vivo .cc-prox b.longo{font-size:36px}
+.cc-vivo .cc-prox .cc-pbar{position:absolute;left:0;right:0;bottom:0;height:5px;background:rgba(255,255,255,.06)}
+.cc-vivo .cc-prox .cc-pbar i{display:block;height:100%;width:0;background:var(--accent);transition:width .9s linear}
+.cc-card.alerta .cc-vivo .cc-prox{border-color:var(--yellow)}
+.cc-card.alerta .cc-vivo .cc-prox b{color:var(--yellow)}
+.cc-card.pausada .cc-vivo .cc-prox{border-color:rgba(242,109,109,.6)}
+.cc-card.pausada .cc-vivo .cc-prox b{color:var(--red)}
+.cc-card.pausada .cc-vivo .cc-pbar i{background:var(--red)}
+.cc-card.fora .cc-vivo .cc-prox b{color:var(--text2)}
+.cc-hora{font-variant-numeric:tabular-nums;font-weight:700;color:var(--text);font-size:13px;white-space:nowrap}
+.cc-tab select,.cc-traz{background:var(--panel2);border:1px solid var(--border);color:var(--text2);border-radius:99px;padding:3px 6px;font-size:11px;cursor:pointer;max-width:220px}
+.cc-tab select{border:none;background:transparent;padding:0 2px;max-width:92px}
+.cc-traz{color:var(--text);padding:5px 10px}
+.cc-campos{display:grid;grid-template-columns:1.7fr 1fr .7fr;gap:8px}
+.cc-campos .form-group{min-width:0}
+.cc-campos select,.cc-campos input{width:100%;min-width:0;padding:7px 9px;font-size:13px}
+.cc-linha{display:flex;gap:6px;align-items:center}
+.cc-linha input[type=text]{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px}
+.cc-linha input[type=text]:focus{border-color:var(--accent);outline:none}
+.cc-rot{font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.3px;margin-bottom:-6px}
+.cc-frases{display:flex;flex-wrap:wrap;gap:5px}
+.cc-frases button{background:var(--panel2);border:1px solid var(--border);color:var(--text2);border-radius:99px;padding:4px 10px;font-size:11px;cursor:pointer}
+.cc-frases button:hover{color:var(--text);border-color:var(--accent)}
+.cc-acoes{display:flex;flex-wrap:wrap;gap:6px}
+.cc-tabs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border-top:1px solid var(--border);padding-top:10px;font-size:12px;color:var(--text2)}
+.cc-tab{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--border);border-radius:99px;padding:4px 6px 4px 10px;font-size:12px;color:var(--text)}
+.cc-tab i{width:8px;height:8px;border-radius:50%;background:var(--text2);display:inline-block}
+.cc-tab.on i{background:var(--accent)}
+.cc-tab.off{opacity:.6}
+.cc-tab button{background:transparent;border:none;color:var(--text2);cursor:pointer;font-size:12px;padding:0 4px}
+.cc-tab button:hover{color:var(--red)}
+.cc-vazio{grid-column:1/-1;background:var(--panel);border:1px dashed #2C5570;border-radius:10px;padding:30px;text-align:center;color:var(--text2);font-size:14px}
+.cc-log{max-height:260px;overflow:auto;font-size:12px}
+.cc-log div{display:flex;gap:10px;padding:6px 4px;border-bottom:1px solid var(--border)}
+.cc-log .h{color:var(--text2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.cc-log .c{color:var(--blue);white-space:nowrap;font-weight:600}
+.cc-log .t{flex:1}
+.cc-log .auto .t{color:var(--text2)}
+.cc-pes{background:var(--panel2);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--text2);display:flex;gap:8px;align-items:center;flex-wrap:wrap;line-height:1.5}
+.cc-pes b{color:var(--text);font-variant-numeric:tabular-nums}
+.cc-pes .txt{flex:1 1 100%;min-width:0}
+.cc-pes .neg{color:var(--red)} .cc-pes .pos{color:var(--accent)}
+.cc-pe-tab td.nok{color:var(--red);font-weight:700}
+.cc-modal{position:fixed;inset:0;background:rgba(4,10,15,.72);display:none;align-items:center;justify-content:center;z-index:500;padding:16px}
+.cc-modal.show{display:flex}
+.cc-modal .cx{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;width:100%;max-width:460px;display:flex;flex-direction:column;gap:12px}
+.cc-modal h3{font-size:16px;margin:0}
+.cc-modal .form-group input,.cc-modal .form-group select{width:100%}
+.cc-modal .rod{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+.cc-tabela select,.cc-tabela input{background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:12px}
+.cc-modal .cx.larga{max-width:980px;max-height:92vh}
+.cc-ci-topo{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.cc-ci-topo h3{flex:1;min-width:200px}
+.cc-ci-topo select,.cc-ci-topo input{background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:13px}
+.cc-ci-res{display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--text2);align-items:center}
+.cc-ci-res label{display:inline-flex;gap:6px;align-items:center;cursor:pointer;margin-left:auto}
+.cc-ci-corpo{overflow:auto;border:1px solid var(--border);border-radius:8px;min-height:120px}
+.cc-ci-corpo table{width:100%;border-collapse:collapse;font-size:13px}
+.cc-ci-corpo th{position:sticky;top:0;z-index:1}
+.cc-ci-corpo td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
+.cc-ci-corpo td.n{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
+.cc-ci-corpo tr.nok{background:rgba(242,109,109,.08)}
+.cc-ci-corpo tr.andamento{background:rgba(38,178,71,.1)}
+.cc-ci-corpo tr.futuro{opacity:.45}
+.cc-ci-corpo tr.grupo td{background:var(--panel2);font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px}
+.cc-ci-corpo input[type=text]{width:100%;min-width:180px;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:13px}
+.cc-ci-corpo input[type=text]:focus{border-color:var(--accent);outline:none}
+.cc-ci-corpo input.falta{border-color:var(--yellow)}
+.cc-ci-corpo label{display:inline-flex;gap:8px;align-items:center;cursor:pointer;white-space:nowrap}
+.cc-ci-corpo input[type=checkbox]{width:17px;height:17px;accent-color:var(--accent)}
+/* --- programação: vistas, pendentes, programadas --- */
+.cc-vistas{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.cc-vista{background:var(--panel);border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.cc-vista b{background:var(--panel2);border-radius:99px;padding:1px 9px;font-size:12px;color:var(--text)}
+.cc-vista:hover{color:var(--text)}
+.cc-vista.on{background:rgba(38,178,71,.14);border-color:var(--accent);color:var(--text)}
+.cc-vista.on b{background:var(--accent);color:#06140B}
+.cc-prog-l{background:var(--panel2);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--text2);line-height:1.6;display:flex;gap:8px;align-items:flex-start}
+.cc-prog-l>div{flex:1;min-width:0}
+.cc-prog-l b{color:var(--text);font-variant-numeric:tabular-nums}
+.cc-prog-l .sem{color:var(--yellow)}
+.cc-fim-aviso{display:none;background:rgba(38,178,71,.12);border:1px solid var(--accent);border-radius:8px;padding:10px 12px;font-size:13px;align-items:center;gap:10px;flex-wrap:wrap}
+.cc-fim-aviso span{flex:1;min-width:160px}
+.cc-card.fim .cc-fim-aviso{display:flex}
+.cc-pend{background:rgba(242,109,109,.08);border:1px solid rgba(242,109,109,.5);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.cc-pend h4{font-size:13px;margin:0 0 8px;color:var(--red)}
+.cc-pend .it{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:8px 0;border-top:1px solid rgba(242,109,109,.25);font-size:13px}
+.cc-pend .it:first-of-type{border-top:none}
+.cc-pend .it div{flex:1;min-width:220px;color:var(--text2)}
+.cc-pend .it div b{color:var(--text)}
+.cc-ociosas{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:16px}
+.cc-oc{background:var(--panel);border:1px dashed #2C5570;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--text2)}
+.cc-oc .cc-cab strong{font-size:14px;color:var(--text)}
+.cc-oc .cc-tabs{border-top:none;padding-top:0}
+.cc-sec-t{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin:4px 0 8px}
+.cc-prog-tab td,.cc-prog-tab th{white-space:nowrap}
+.cc-prog-tab td.q{white-space:normal;min-width:150px}
+.cc-prog-tab tr.hoje td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.cc-modal .cx.media{max-width:640px;max-height:94vh;overflow:auto}
+.cc-g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cc-g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.cc-chips{display:flex;flex-wrap:wrap;gap:6px}
+.cc-chips button{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:99px;padding:5px 12px;font-size:12px;cursor:pointer}
+.cc-chips button:hover{border-color:var(--accent)}
+.cc-tk{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--border);border-radius:99px;padding:5px 11px;font-size:12px;cursor:pointer;color:var(--text)}
+.cc-tk input{accent-color:var(--accent);width:15px;height:15px}
+.cc-tk.off{opacity:.65}
+.cc-resumo.alerta{color:var(--red);font-weight:700}
+.cc-dica{font-size:12px;color:var(--text2);min-height:16px}
+.cc-dica b{color:var(--text)}
+.cc-dica.ok{color:var(--accent)}
+.cc-dica.av{color:var(--yellow)}
+.cc-sub{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;border-top:1px solid var(--border);padding-top:10px;margin-top:2px}
+.cc-modal input[readonly],.cc-modal select:disabled,.cc-modal input:disabled{opacity:.6}
+.cc-check{display:flex;gap:8px;align-items:flex-start;font-size:13px;cursor:pointer;line-height:1.4}
+.cc-check input{margin-top:2px;width:16px;height:16px;accent-color:var(--accent)}
+@media(max-width:640px){.cc-g2,.cc-g3{grid-template-columns:1fr}}
+#tab-central{display:none}
+body.adm #tab-central{display:inline-block}
+@media(max-width:768px){.cc-grid{grid-template-columns:1fr}.cc-campos{grid-template-columns:1fr 1fr}.cc-campos .form-group:first-child{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<div class="fita-marca"></div>
+
+<div class="topbar">
+  <div class="logo"><img src="/assets/logo-decio.png" class="logo-decio" alt=""><a href="/progestao">ProGestão</a> / Linha de Produção</div>
+  <div class="user-info">
+    <a href="/" class="voltar-portal">← Portal</a><span class="clock" id="clock">--:--</span>
+    <span id="user-name">Carregando...</span>
+    <button class="btn-logout" onclick="logout()">Sair</button>
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="sidebar">
+    <a href="/progestao">🏠 Início</a>
+    <a href="/progestao/ferramentas">🔧 Ferramentas</a>
+    <a href="/progestao/epis">🦺 EPIs</a>
+    <a href="/progestao/banco-horas">⏰ Banco Horas</a>
+    <a href="/progestao/treinamentos">📚 Treinamentos</a>
+    <a href="/progestao/diario-bordo">📓 Diário Bordo</a>
+    <a href="/progestao/checklist">✅ Checklist</a>
+    <a href="/progestao/producao">🏭 Plano de Produção</a><a href="/progestao/linha-producao" class="active">🏗️ Linha de Produção</a><a href="/progestao/produtos">📦 Produtos</a><a href="/progestao/limpeza">🧹 Limpeza</a>
+  </nav>
+
+  <div class="main">
+    <div class="pcp-aviso">👁 Perfil <strong>PCP</strong>: acesso somente para visualização da Linha de Produção.</div>
+
+    <div class="tabs">
+      <button class="tab" id="tab-central" onclick="showTab('central',event)">🎛️ Cadenciador central</button>
+      <button class="tab active" id="tab-historico" onclick="showTab('historico',event)">📜 Histórico</button>
+    </div>
+
+    <!-- ============ HISTÓRICO ============ -->
+    <div class="section show" id="sec-historico">
+      <div class="card">
+        <div class="hist-filtros">
+          <div class="form-group"><label>De</label><input type="date" id="h-de" onchange="carregarHistorico()"></div>
+          <div class="form-group"><label>Até</label><input type="date" id="h-ate" onchange="carregarHistorico()"></div>
+          <div class="form-group"><label>Célula</label><select id="h-celula" onchange="renderHistorico()"><option value="">Todas</option></select></div>
+          <div class="form-group"><label>Produto</label><select id="h-produto" onchange="renderHistorico()"><option value="">Todos</option></select></div>
+          <div class="form-group"><label>Visualização</label><select id="h-vis" onchange="renderHistorico()"><option value="quadro">Quadro (dia × célula)</option><option value="lista">Lista</option></select></div>
+          <div class="form-group"><label>&nbsp;</label><button class="btn-sm btn-blue" onclick="exportarCSV()">📥 Exportar CSV</button></div>
+        </div>
+        <div class="kpis" id="h-kpis"></div>
+        <div id="h-corpo" class="quadro"></div>
+      </div>
+    </div>
+
+    <!-- ============ CADENCIADOR CENTRAL (só admin) ============ -->
+    <div class="section" id="sec-central">
+      <div class="kpis" id="cc-kpis"></div>
+
+      <div class="cc-barra">
+        <button class="btn-sm btn-accent" onclick="cadcProgramar()">＋ Programar célula</button>
+        <div class="cc-todas">
+          <input type="text" id="cc-todas-txt" maxlength="300" placeholder="Aviso para TODAS as células (o tablet fala em voz alta)" onkeydown="if(event.key==='Enter')cadcFalarTodas()">
+          <button class="btn-sm btn-blue" onclick="cadcFalarTodas()">📢 Falar em todas</button>
+        </div>
+        <span class="cc-hora" id="cc-hora" title="Relógio oficial — o mesmo usado em todos os tablets">--:--:--</span>
+        <span class="cc-resumo" id="cc-resumo">—</span>
+        <a href="/cadenciador/celula" target="_blank" rel="noopener">Abrir tela do tablet ↗</a>
+      </div>
+
+      <div class="cc-vistas">
+        <button class="cc-vista on" id="cc-bt-ativas" onclick="cadcVista('ativas')">▶ Células ativas <b id="cc-n-ativas">0</b></button>
+        <button class="cc-vista" id="cc-bt-prog" onclick="cadcVista('prog')">🗓 Programadas <b id="cc-n-prog">0</b></button>
+      </div>
+
+      <!-- ── células ativas ── -->
+      <div id="cc-v-ativas">
+        <div id="cc-pend"></div>
+        <div class="cc-grid" id="cc-grid"><div class="cc-vazio">Carregando…</div></div>
+        <div id="cc-ociosas-box"></div>
+        <div class="card" id="cc-env-card" style="display:none">
+          <div class="card-title">✅ Últimos envios ao Plano de Produção <a href="/progestao/producao" target="_blank" style="font-size:12px;font-weight:600;margin-left:8px">abrir o Plano ↗</a></div>
+          <div style="overflow:auto"><table><thead><tr><th>Dia</th><th>Célula</th><th>Produto</th><th>OP</th><th>Série inicial</th><th>Última série</th><th>Realizado</th><th>Enviado</th></tr></thead><tbody id="cc-env"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- ── programadas ── -->
+      <div id="cc-v-prog" style="display:none">
+        <div class="cc-ajuda">
+          Aqui ficam as células <b>programadas para começar depois</b> (próximo turno, amanhã, outro dia). Quando chega o dia e a hora do turno,
+          a célula <b>começa a rodar sozinha</b> e passa para “Células ativas” — o tablet que já estiver nela muda junto.
+        </div>
+        <div class="card">
+          <div style="overflow:auto"><table class="cc-prog-tab">
+            <thead><tr><th>Começa em</th><th>Célula</th><th>Produto</th><th>Takt</th><th>OP</th><th>Séries</th><th>Oper.</th><th>Meta</th><th>Ações</th></tr></thead>
+            <tbody id="cc-prog"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📱 Tablets</div>
+        <div style="overflow:auto"><table class="cc-tabela">
+          <thead><tr><th>Tablet</th><th>Situação</th><th>Som</th><th>Célula</th><th>Usuário</th><th>Ações</th></tr></thead>
+          <tbody id="cc-tablets"><tr><td colspan="6" style="color:var(--text2)">Nenhum tablet conectado ainda.</td></tr></tbody>
+        </table></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⚖️ Estações de pesagem (notebook + balança + coletora)</div>
+        <div style="overflow:auto"><table class="cc-tabela">
+          <thead><tr><th>Estação</th><th>Situação</th><th>Balança</th><th>Célula</th><th>Ações</th></tr></thead>
+          <tbody id="cc-estacoes"><tr><td colspan="5" style="color:var(--text2)">Nenhuma estação ainda.</td></tr></tbody>
+        </table></div>
+        <div style="font-size:12px;color:var(--text2);margin-top:8px">O notebook pesa o produto, confere com o <b>peso cadastrado no produto</b> e pede para bipar o número de série. Peso errado = o tablet da célula fala <b>“Peso incorreto”</b>.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🗒️ Últimos avisos enviados</div>
+        <div class="cc-log" id="cc-log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Cadenciador central: programar célula (nova programação ou edição) -->
+<div class="cc-modal" id="cc-m-prog">
+  <div class="cx media">
+    <h3 id="cc-o-titulo">＋ Programar célula</h3>
+
+    <div id="cc-o-bloco-cad">
+      <div class="cc-g2">
+        <div class="form-group"><label>Célula</label>
+          <input id="cc-o-celula" maxlength="50" list="cc-dl-celulas" placeholder="Escolha ou digite" autocomplete="off" onchange="cadcProgCelula()">
+          <datalist id="cc-dl-celulas"></datalist></div>
+        <div class="form-group"><label>Produto</label><select id="cc-o-produto" onchange="cadcProgDica()"></select></div>
+      </div>
+      <div class="form-group" style="margin-top:10px"><label>Quando começa a rodar</label>
+        <div class="cc-chips">
+          <button type="button" onclick="cadcProgQuando('agora')">▶ Agora</button>
+          <button type="button" onclick="cadcProgQuando('proximo')">⏭ Próximo turno</button>
+          <button type="button" onclick="cadcProgQuando('amanha')">📅 Amanhã</button>
+        </div></div>
+      <div class="cc-g3" style="margin-top:8px">
+        <div class="form-group"><label>Dia</label><input type="date" id="cc-o-data" onchange="cadcProgDica()"></div>
+        <div class="form-group"><label>Turno</label><select id="cc-o-turno" onchange="cadcProgDica()"></select></div>
+        <div class="form-group"><label>Takt (min)</label><input id="cc-o-takt" type="number" step="0.1" min="0.1" placeholder="do cadastro"></div>
+      </div>
+      <div class="cc-dica" id="cc-o-quando-dica"></div>
+    </div>
+
+    <div class="cc-sub">Ordem de produção e números de série</div>
+    <div class="cc-g3">
+      <div class="form-group"><label>N° OP (8 dígitos)</label>
+        <input id="cc-o-op" maxlength="8" inputmode="numeric" list="cc-dl-ops" placeholder="opcional" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'');cadcProgDica()">
+        <datalist id="cc-dl-ops"></datalist></div>
+      <div class="form-group"><label>N° série inicial</label>
+        <input id="cc-o-si" maxlength="13" placeholder="13 caracteres" autocomplete="off" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');cadcProgDica()"></div>
+      <div class="form-group"><label>N° série final</label>
+        <input id="cc-o-sf" maxlength="13" placeholder="13 caracteres" autocomplete="off" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');cadcProgDica()"></div>
+    </div>
+    <div class="cc-dica" id="cc-o-op-dica"></div>
+
+    <div class="cc-sub">Equipe e meta do dia</div>
+    <div class="cc-g3">
+      <div class="form-group"><label>Operadores</label><input id="cc-o-oper" type="number" min="0" step="1" oninput="cadcProgDica()"></div>
+      <div class="form-group"><label>Horas por operador</label><input id="cc-o-horas" type="number" min="0" step="0.5" oninput="cadcProgDica()"></div>
+      <div class="form-group"><label>Meta do dia (pç)</label><input id="cc-o-meta" type="number" min="0" step="1" placeholder="opcional"></div>
+    </div>
+    <div class="cc-dica" id="cc-o-cap-dica"></div>
+    <div class="form-group"><label>Observação</label><input id="cc-o-obs" maxlength="500" placeholder="Ex.: aguardando material, setup às 9h…"></div>
+    <label class="cc-check"><input type="checkbox" id="cc-o-rep"> <span>Repetir todo dia útil (segunda a sexta), no mesmo turno, até eu parar</span></label>
+    <div id="cc-o-tabs-bloco">
+      <div class="cc-sub">📱 Tablets desta célula</div>
+      <div class="cc-dica" style="margin:6px 0">Os marcados <b>vão sozinhos para esta célula quando ela começar</b> — ninguém precisa ir até o tablet. Os que já estão na célula continuam nela de qualquer jeito.</div>
+      <div class="cc-chips" id="cc-o-tabs"></div>
+    </div>
+
+    <div class="rod">
+      <button class="btn-sm btn-ghost" onclick="cadcFechaModal('cc-m-prog')">Cancelar</button>
+      <button class="btn-sm btn-accent" id="cc-o-salvar" onclick="cadcProgSalvar()">Programar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cadenciador central: finalizar e enviar ao Plano de Produção -->
+<div class="cc-modal" id="cc-m-fim">
+  <div class="cx media">
+    <h3>✅ Finalizar e enviar ao Plano de Produção</h3>
+    <div class="cc-dica" id="cc-f-info"></div>
+    <div class="cc-g3">
+      <div class="form-group"><label>Dia da produção</label><input type="date" id="cc-f-data"></div>
+      <div class="form-group"><label>N° OP (8 dígitos)</label>
+        <input id="cc-f-op" maxlength="8" inputmode="numeric" list="cc-dl-ops" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'');cadcFimDica()"></div>
+      <div class="form-group"><label>Meta do dia (pç)</label><input id="cc-f-meta" type="number" min="0" step="1"></div>
+    </div>
+    <div class="cc-g2">
+      <div class="form-group"><label>N° série inicial</label>
+        <input id="cc-f-si" maxlength="13" autocomplete="off" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');cadcFimSeries()"></div>
+      <div class="form-group"><label>Último n° de série PRODUZIDO</label>
+        <input id="cc-f-sf" maxlength="13" autocomplete="off" style="border-color:var(--accent)" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');cadcFimSeries()"></div>
+    </div>
+    <div class="cc-dica" id="cc-f-serie-dica"></div>
+    <div class="cc-g2">
+      <div class="form-group"><label>Quantidade realizada (pç)</label><input id="cc-f-qtd" type="number" min="0" step="1" oninput="ccFimQtdManual=true;cadcFimDica()"></div>
+      <div class="form-group"><label>Observações</label><input id="cc-f-obs" maxlength="500"></div>
+    </div>
+    <div class="cc-dica" id="cc-f-qtd-dica"></div>
+    <label class="cc-check" id="cc-f-cont-l"><input type="checkbox" id="cc-f-cont"> <span id="cc-f-cont-t">Programar o que faltou para o próximo dia útil</span></label>
+    <div class="cc-dica" id="cc-f-plano-dica"></div>
+    <div class="rod">
+      <button class="btn-sm btn-ghost" onclick="cadcFechaModal('cc-m-fim')">Cancelar</button>
+      <button class="btn-sm btn-ghost" id="cc-f-so-enc" onclick="cadcFimEnviar(false)" title="Para a célula agora e deixa o envio para depois (fica em Pendentes de envio)">Só encerrar, enviar depois</button>
+      <button class="btn-sm btn-accent" id="cc-f-enviar" onclick="cadcFimEnviar(true)">✅ Enviar ao Plano de Produção</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cadenciador central: histórico de ciclos -->
+<div class="cc-modal" id="cc-m-ciclos">
+  <div class="cx larga">
+    <div class="cc-ci-topo">
+      <h3>📋 Ciclos — <span id="cc-ci-nome"></span></h3>
+      <div class="form-group"><label>Dia</label><select id="cc-ci-dia" onchange="cadcCiclosCarregar(true)"></select></div>
+      <button class="btn-sm btn-blue" onclick="cadcCiclosCSV()">📥 Exportar CSV</button>
+      <button class="btn-sm btn-ghost" onclick="cadcCiclosLimpar()">Limpar marcações</button>
+      <button class="btn-sm btn-ghost" onclick="cadcCiclosFechar()">Fechar</button>
+    </div>
+    <div class="cc-ci-res">
+      <span class="badge green" id="cc-ci-ok">0 concluídos</span>
+      <span class="badge red" id="cc-ci-nok">0 não concluídos</span>
+      <span id="cc-ci-info"></span>
+      <label><input type="checkbox" id="cc-ci-so-nok" onchange="cadcCiclosRender()"> Mostrar só os não concluídos</label>
+    </div>
+    <div class="cc-ci-corpo" id="cc-ci-corpo"></div>
+    <div style="font-size:12px;color:var(--text2)">Desmarque <b>Concluído</b> nos ciclos que não fecharam e escreva o <b>motivo</b>. Salva sozinho e aparece no histórico do tablet.</div>
+    <datalist id="cc-dl-motivos">
+      <option value="Falta de material"><option value="Falta de operador"><option value="Problema de qualidade">
+      <option value="Retrabalho"><option value="Manutenção / máquina parada"><option value="Troca de produto (setup)">
+      <option value="Falta de embalagem"><option value="Reunião / treinamento"><option value="Aguardando peça da pintura">
+    </datalist>
+  </div>
+</div>
+
+<!-- Cadenciador central: pesagens da célula -->
+<div class="cc-modal" id="cc-m-pes">
+  <div class="cx larga">
+    <div class="cc-ci-topo">
+      <h3>⚖️ Pesagens — <span id="cc-pe-nome"></span></h3>
+      <div class="form-group"><label>Dia</label><input type="date" id="cc-pe-dia" onchange="cadcPesagensCarregar()"></div>
+      <button class="btn-sm btn-blue" onclick="cadcPesagensCSV()">📥 Exportar CSV</button>
+      <button class="btn-sm btn-ghost" onclick="cadcFechaModal('cc-m-pes')">Fechar</button>
+    </div>
+    <div class="cc-ci-res">
+      <span class="badge green" id="cc-pe-ok">0 pesados</span>
+      <span class="badge red" id="cc-pe-nok">0 pesos incorretos</span>
+      <span id="cc-pe-info"></span>
+    </div>
+    <div class="cc-ci-corpo"><table class="cc-tabela cc-pe-tab">
+      <thead><tr><th>Hora</th><th>N° de série</th><th>Peso</th><th>Peso do produto</th><th>Situação</th><th>Produto</th><th>OP</th><th>Estação</th><th></th></tr></thead>
+      <tbody id="cc-pe-corpo"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- Cadenciador central: peso do produto -->
+<div class="cc-modal" id="cc-m-peso">
+  <div class="cx">
+    <h3>⚖️ Peso do produto</h3>
+    <div id="cc-ps-nome" style="font-weight:700"></div>
+    <div class="form-group"><label>Peso padrão (kg) — vazio = não conferir o peso</label>
+      <input id="cc-ps-peso" type="text" inputmode="decimal" placeholder="ex.: 12,500" oninput="cadcPesoDica()"></div>
+    <div class="form-group"><label>Tolerância para mais ou para menos (kg)</label>
+      <input id="cc-ps-tol" type="text" inputmode="decimal" placeholder="vazio = 2 % do peso (mínimo 0,050)" oninput="cadcPesoDica()"></div>
+    <div id="cc-ps-dica" style="font-size:12px;color:var(--text2)"></div>
+    <div class="rod">
+      <button class="btn-sm btn-ghost" onclick="cadcFechaModal('cc-m-peso')">Cancelar</button>
+      <button class="btn-sm btn-accent" onclick="cadcPesoSalvar()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cadenciador central: pausar -->
+<div class="cc-modal" id="cc-m-pausa">
+  <div class="cx">
+    <h3>⏸ Pausar <span id="cc-p-nome"></span></h3>
+    <div class="form-group"><label>Motivo</label>
+      <select id="cc-p-motivo" onchange="document.getElementById('cc-p-outro-g').style.display=this.value==='__outro'?'flex':'none'">
+        <option>Ginástica laboral</option><option>Reunião</option><option>Falta de material</option>
+        <option>Manutenção</option><option>Troca de produto</option><option>Limpeza</option>
+        <option value="__outro">Outro…</option>
+      </select></div>
+    <div class="form-group" id="cc-p-outro-g" style="display:none"><label>Qual motivo?</label><input id="cc-p-outro" maxlength="120"></div>
+    <div class="form-group"><label>Duração em minutos — vazio = até eu mandar retomar</label>
+      <input id="cc-p-min" type="number" min="1" max="600" step="1" placeholder="até retomar"></div>
+    <div style="font-size:12px;color:var(--text2)">Com duração, a linha <b>volta sozinha</b> no fim do tempo e o tablet avisa. O tempo parado empurra os ciclos seguintes.</div>
+    <div class="rod">
+      <button class="btn-sm btn-ghost" onclick="cadcFechaModal('cc-m-pausa')">Cancelar</button>
+      <button class="btn-sm btn-red" onclick="cadcPausarOk()">⏸ Pausar agora</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let usuarioAtual = null;
+let historico = [];
+
+/* ---------- utilidades ---------- */
+async function api(url, opts = {}) {
+  opts.headers = { 'Content-Type': 'application/json', ...(opts.headers||{}) };
+  if (opts.body && typeof opts.body !== 'string') opts.body = JSON.stringify(opts.body);
+  const r = await fetch('/api' + url, opts);
+  if (r.status === 401) { location.href = '/login'; throw new Error('Sessão expirada'); }
+  if (!r.ok) { let msg = 'Erro na requisição'; try { const j = await r.json(); msg = j.error || msg; } catch(e){} throw new Error(msg); }
+  return r.json();
+}
+function toast(msg, type = 'ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = type === 'error' ? 'show error' : type === 'warn' ? 'show warn' : 'show';
+  setTimeout(() => t.className = '', 4500);
+}
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtNum = n => Number(n||0).toLocaleString('pt-BR', { maximumFractionDigits:2 });
+const fmtH = h => (Math.round((h||0) * 10) / 10).toLocaleString('pt-BR', { minimumFractionDigits:1, maximumFractionDigits:1 }) + ' h';
+const isoDe = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+const isoHoje = () => isoDe(new Date());
+const addDias = (iso, n) => { const p = iso.split('-').map(Number); return isoDe(new Date(p[0], p[1]-1, p[2]+n)); };
+const fmtData = iso => iso ? iso.slice(8,10) + '/' + iso.slice(5,7) + '/' + iso.slice(0,4) : '-';
+const DIAS_SEM = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+const diaSemana = iso => { const p = iso.split('-').map(Number); return DIAS_SEM[new Date(p[0], p[1]-1, p[2]).getDay()]; };
+const ehPcp = () => usuarioAtual && usuarioAtual.role === 'pcp';
+
+function updateClock() { document.getElementById('clock').textContent = new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }); }
+setInterval(updateClock, 30000); updateClock();
+
+async function loadUser() {
+  try {
+    usuarioAtual = await api('/me');
+    document.getElementById('user-name').textContent = usuarioAtual.nome || usuarioAtual.username || 'Usuário';
+    if (ehPcp()) document.body.classList.add('pcp');
+  } catch(e) { document.getElementById('user-name').textContent = 'Usuário'; }
+}
+async function logout() { await fetch('/api/logout', { method:'POST' }); location.href = '/login'; }
+
+function showTab(name, ev) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('show'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('show');
+  if (ev) ev.target.classList.add('active');
+  if (name === 'historico') carregarHistorico();
+  if (name === 'central') cadcAbrir(); else if (typeof cadcFechar === 'function') cadcFechar();
+}
+
+/* ---------- histórico ---------- */
+async function carregarHistorico() {
+  const de = document.getElementById('h-de').value, ate = document.getElementById('h-ate').value;
+  if (!de || !ate) return;
+  try { historico = await api(`/linha-producao?de=${de}&ate=${ate}`); }
+  catch (e) { toast('Erro: ' + e.message, 'error'); historico = []; }
+  const keep = (id, opts) => { const s = document.getElementById(id), v = s.value; s.innerHTML = opts; s.value = v; };
+  keep('h-celula', '<option value="">Todas</option>' + [...new Set(historico.map(l => l.celula_nome))].sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric:true })).map(c => `<option>${esc(c)}</option>`).join(''));
+  const prods = new Map(); historico.forEach(l => { if (l.cod_decio) prods.set(l.cod_decio, l.descricao || ''); });
+  keep('h-produto', '<option value="">Todos</option>' + [...prods].sort().map(([c, d]) => `<option value="${esc(c)}">${esc(c)}${d ? ' — ' + esc(d.slice(0, 35)) : ''}</option>`).join(''));
+  renderHistorico();
+}
+
+function histFiltrado() {
+  const cel = document.getElementById('h-celula').value, prod = document.getElementById('h-produto').value;
+  return historico.filter(l => (!cel || l.celula_nome === cel) && (!prod || l.cod_decio === prod));
+}
+
+function renderHistorico() {
+  const lista = histFiltrado();
+  const on = lista.filter(l => l.funcionando);
+  const dias = [...new Set(lista.map(l => l.data))].sort().reverse();
+  const meta = on.reduce((s, l) => s + (parseFloat(l.meta) || 0), 0);
+  const real = on.reduce((s, l) => s + (parseFloat(l.realizado_dia) || 0), 0);
+  document.getElementById('h-kpis').innerHTML = [
+    { lbl:'Dias programados', val: dias.length, cor:'blue' },
+    { lbl:'Células-dia funcionando', val: on.length, cor:'green' },
+    { lbl:'Células-dia paradas', val: lista.length - on.length, cor:'red' },
+    { lbl:'Meta programada', val: fmtNum(meta), cor:'yellow' },
+    { lbl:'Apontado', val: fmtNum(real), cor:'orange', sub: meta ? (real / meta * 100).toFixed(1) + '% da meta' : '' }
+  ].map(k => `<div class="kpi ${k.cor}"><div class="lbl">${k.lbl}</div><div class="val">${k.val}</div>${k.sub ? `<div style="font-size:10px;color:var(--text2);margin-top:4px">${k.sub}</div>` : ''}</div>`).join('');
+
+  const corpo = document.getElementById('h-corpo');
+  if (!lista.length) { corpo.innerHTML = '<p style="color:var(--text2);padding:20px;text-align:center">Nenhuma programação no período.</p>'; return; }
+
+  if (document.getElementById('h-vis').value === 'lista') {
+    corpo.innerHTML = `<table><thead><tr><th>Data</th><th>Célula</th><th>Situação</th><th>Turno</th><th>Cód. Décio</th><th>Descrição</th><th>OP</th><th>Oper.</th><th>Meta</th><th>Apontado</th><th>Obs.</th></tr></thead><tbody>${
+      lista.map(l => `<tr style="${l.funcionando ? '' : 'opacity:.6'}">
+        <td>${fmtData(l.data)}</td><td><strong>${esc(l.celula_nome)}</strong></td>
+        <td>${l.funcionando ? '<span class="badge green">Funcionando</span>' : '<span class="badge red">Parada</span>'}</td>
+        <td>${l.turno ? l.turno + 'º' : '-'}</td><td><strong>${esc(l.cod_decio || '-')}</strong></td><td>${esc((l.descricao || '-').slice(0, 40))}</td>
+        <td>${esc(l.num_op || '-')}</td><td>${l.operadores ?? '-'}</td><td>${l.meta != null ? fmtNum(l.meta) : '-'}</td>
+        <td>${Number(l.apontamentos_dia) ? fmtNum(l.realizado_dia) : '-'}</td><td title="${esc(l.obs || '')}">${esc((l.obs || '-').slice(0, 30))}</td></tr>`).join('')
+    }</tbody></table>`;
+    return;
+  }
+  // quadro: linhas = dias, colunas = células
+  const cels = [...new Set(lista.map(l => l.celula_nome))].sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric:true }));
+  corpo.innerHTML = `<table><thead><tr><th>Data</th>${cels.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${
+    dias.map(d => `<tr><td><strong>${fmtData(d)}</strong><div style="font-size:10px;color:var(--text2)">${diaSemana(d).split('-')[0]}</div></td>${
+      cels.map(c => {
+        const l = lista.find(x => x.data === d && x.celula_nome === c);
+        if (!l) return '<td class="q vazio">—</td>';
+        if (!l.funcionando) return `<td class="q vazio" title="${esc(l.obs || '')}">parada</td>`;
+        return `<td class="q on" title="${esc((l.descricao || '') + (l.obs ? ' · ' + l.obs : ''))}"><b>${esc(l.cod_decio || 'sem produto')}</b>${esc((l.descricao || '').slice(0, 22))}${l.num_op ? '<br>OP ' + esc(l.num_op) : ''}${Number(l.apontamentos_dia) ? '<br><span style="color:var(--accent)">' + fmtNum(l.realizado_dia) + ' pç</span>' : ''}</td>`;
+      }).join('')}</tr>`).join('')
+  }</tbody></table>`;
+}
+
+function exportarCSV() {
+  const lista = histFiltrado();
+  if (!lista.length) return toast('Nada para exportar', 'warn');
+  const cab = ['Data','Célula','Situação','Turno','Cód. Décio','Cód. Intelbras','Descrição','N° OP','Operadores','Horas/operador','Meta','Apontado','Observação'];
+  const linhas = lista.map(l => [fmtData(l.data), l.celula_nome, l.funcionando ? 'Funcionando' : 'Parada', l.turno ? l.turno + 'º' : '', l.cod_decio || '', l.cod_intelbras || '', l.descricao || '',
+    l.num_op || '', l.operadores ?? '', l.horas_operador ?? '', l.meta ?? '', Number(l.apontamentos_dia) ? l.realizado_dia : '', (l.obs || '').replace(/[\r\n]/g, ' ')]);
+  const csv = [cab, ...linhas].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(';')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type:'text/csv;charset=utf-8' }));
+  a.download = `linha_producao_${document.getElementById('h-de').value}_a_${document.getElementById('h-ate').value}.csv`; a.click();
+  toast('CSV exportado!');
+}
+
+/* ---------- início ---------- */
+(async () => {
+  const hoje = isoHoje();
+  document.getElementById('h-de').value = addDias(hoje, -13);
+  document.getElementById('h-ate').value = addDias(hoje, 7);
+  await loadUser();
+  await carregarHistorico();
+})();
+</script>
+<script src="/js/cadc.js?v=4"></script>
+<script>
+/* ═══════════ Cadenciador central — painel do administrador ═══════════ */
+const CC = '/cadenciador-central';
+let ccVisao = null, ccCad = null, ccTimer = null, ccRelogio = null, ccAssin = '', ccPausaId = null, ccBuscando = false, ccFalhas = 0;
+const CC_FRASES = ['Atenção, equipe', 'Troca de produto', 'Chamar o líder', 'Organizar a célula', 'Faltam 5 minutos para o intervalo'];
+
+function cadcFechaModal(id) { document.getElementById(id).classList.remove('show'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.cc-modal.show').forEach(m => m.classList.remove('show')); });
+
+async function cadcAbrir() {
+  if (!ccCad) {
+    await ccRecarregarCadastros();
+    if (!ccCad) { toast('Não foi possível carregar os cadastros', 'error'); return; }
+  }
+  await cadcAtualizar(true);
+  cadcFechar();
+  ccTimer = setInterval(() => cadcAtualizar(false), 2000);
+  ccRelogio = Cadc.aCadaSegundo(cadcVivo);      // vira o número junto com os tablets
+}
+function cadcFechar() { clearInterval(ccTimer); if (ccRelogio) ccRelogio(); ccTimer = ccRelogio = null; }
+document.addEventListener('visibilitychange', () => { if (!document.hidden && ccTimer) cadcAtualizar(false); });
+
+async function cadcAtualizar(forcar) {
+  if (ccBuscando && !forcar) return;
+  ccBuscando = true;
+  try {
+    const t0 = performance.now();
+    const v = await api(CC + '/admin/visao');
+    Cadc.acertar(v, t0, performance.now());
+    ccVisao = v; ccFalhas = 0;
+  } catch (e) {
+    ccFalhas++;
+    if (ccFalhas === 3) toast('Sem contato com o servidor — o painel segue com os últimos dados', 'warn');
+    return;
+  } finally { ccBuscando = false; }
+  cadcRender(forcar);
+}
+
+/* Só redesenha os cartões quando algo de estrutura muda — assim não atrapalha quem está digitando. */
+function cadcRender(forcar) {
+  const v = ccVisao;
+  const assin = JSON.stringify([
+    v.celulas.map(c => [c.id, c.sinal || c.versao]),
+    v.tablets.map(t => [t.id, t.nome, t.celula_id, t.online, t.som_ok, t.usuario]),
+    (v.estacoes || []).map(e => [e.id, e.nome, e.celula_id, e.online, e.balanca_ok]),
+    v.programadas.map(o => [o.id, o.updated_at]), v.pendentes.map(o => [o.id, o.updated_at, o.ciclos_ok, o.ciclos_nok]),
+    v.enviadas.map(o => o.id), v.hoje
+  ]);
+  const foco = document.activeElement;
+  // Lista aberta ou takt sendo digitado: espera. Campo de texto não segura (o texto e o cursor são preservados).
+  const digitando = foco && foco.closest && foco.closest('#cc-grid, #cc-tablets, #cc-estacoes, #cc-ociosas-box') &&
+    (foco.tagName === 'SELECT' || (foco.tagName === 'INPUT' && foco.type === 'number'));
+  if (forcar || (assin !== ccAssin && !digitando)) {
+    ccAssin = assin;
+    cadcDesenharPend();
+    cadcDesenharCelulas();
+    cadcDesenharOciosas();
+    cadcDesenharProg();
+    cadcDesenharEnv();
+    cadcDesenharTablets();
+    cadcDesenharEstacoes();
+  }
+  cadcKpis();
+  cadcDesenharLog();
+  cadcVivo();
+
+  const on = v.tablets.filter(t => t.online).length;
+  const rodando = new Set(v.celulas.filter(c => !c.ociosa).map(c => c.id));
+  const fora = v.tablets.filter(t => !t.online && rodando.has(t.celula_id));
+  const semTab = v.celulas.filter(c => !c.ociosa && !v.tablets.some(t => t.celula_id === c.id && t.online));
+  const rs = document.getElementById('cc-resumo');
+  rs.textContent = `${on} tablet${on === 1 ? '' : 's'} online` + (fora.length ? ` · ⚠ ${fora.length} sem sinal` : '');
+  rs.title = (fora.length ? 'Sem sinal: ' + fora.map(t => t.nome).join(', ') + '. ' : '') +
+             (semTab.length ? 'Células rodando sem tablet online: ' + semTab.map(c => c.nome).join(', ') : '');
+  rs.classList.toggle('alerta', fora.length > 0);
+}
+
+function cadcDesenharCelulas() {
+  const g = document.getElementById('cc-grid');
+  const v = ccVisao;
+  const ativas = v.celulas.filter(c => !c.ociosa);
+  if (!ativas.length) {
+    g.innerHTML = '<div class="cc-vazio">Nenhuma célula rodando agora.<br>Clique em <b>＋ Programar célula</b>: escolha a célula, o produto, o turno, a OP e os números de série.' +
+      (v.programadas.length ? `<br><br>Há <b>${v.programadas.length}</b> programada(s) esperando a hora — veja em <b>🗓 Programadas</b>.` : '') + '</div>';
+    return;
+  }
+  // Preserva o que estava digitado nos campos de texto
+  const rasc = {};
+  g.querySelectorAll('input[data-rasc]').forEach(i => { if (i.value) rasc[i.dataset.rasc] = i.value; });
+  const foco = document.activeElement && g.contains(document.activeElement) && document.activeElement.id
+    ? { id: document.activeElement.id, a: document.activeElement.selectionStart, b: document.activeElement.selectionEnd } : null;
+
+  g.innerHTML = ativas.map(c => {
+    const optProd = ccCad.produtos.map(p => `<option value="${p.id}"${c.produto && c.produto.id === p.id ? ' selected' : ''}>${esc(p.nome)}</option>`).join('');
+    const prodFora = c.produto && !ccCad.produtos.some(p => p.id === c.produto.id) ? `<option value="${c.produto.id}" selected>${esc(c.produto.nome)}</option>` : '';
+    const turnoFora = c.turno && !ccCad.turnos.some(t => t.id === c.turno.id) ? `<option value="${c.turno.id}" selected>${esc(c.turno.nome)}</option>` : '';
+    const optTurno = ccCad.turnos.map(t => `<option value="${t.id}"${c.turno && c.turno.id === t.id ? ' selected' : ''}>${esc(t.nome)}</option>`).join('');
+    return `
+    <div class="cc-card${c.pausada ? ' pausada' : ''}" data-id="${c.id}">
+      <div class="cc-cab">
+        <strong title="${esc(c.nome)}">${esc(c.nome)}</strong>
+        ${c.ordem && c.ordem.repetir ? '<span class="badge blue" title="Repete todo dia útil, no mesmo turno">🔁 repete</span>' : ''}
+        <span class="badge" id="cc-st-${c.id}">—</span>
+        <button class="cc-ico" title="Renomear" onclick="cadcRenomear(${c.id})">✏️</button>
+        <button class="cc-ico" title="Excluir célula" onclick="cadcExcluir(${c.id})">🗑️</button>
+      </div>
+
+      <div class="cc-fim-aviso"><span>🏁 <b>Turno encerrado.</b> Confira o último n° de série produzido e envie a produção ao Plano.</span>
+        <button class="btn-sm btn-accent" onclick="cadcFinalizar(${c.ordem.id})">✅ Finalizar e enviar</button></div>
+      ${ccProgLinha(c)}
+
+      <div class="cc-vivo">
+        <div class="cc-prox" title="Mesmo tempo que aparece no tablet desta célula">
+          <span id="cc-pr-rot-${c.id}">Próximo ciclo</span><b id="cc-pr-${c.id}">--:--</b>
+          <div class="cc-pbar"><i id="cc-pb-${c.id}"></i></div>
+        </div>
+        <div>Ciclo<b id="cc-ci-${c.id}">—</b><small id="cc-ok-${c.id}"></small></div>
+        <div>Tempo parado<b id="cc-tp-${c.id}">${Cadc.curto(c.tempo_parado_seg)}</b><small>hoje, nesta contagem</small></div>
+      </div>
+
+      <div class="cc-pes">
+        <div class="txt" id="cc-pes-${c.id}">⚖️ Pesagem</div>
+        <button class="btn-sm btn-ghost" onclick="cadcPesoProduto(${c.produto ? c.produto.id : 0})" title="Peso padrão e tolerância deste produto" ${c.produto ? '' : 'disabled'}>⚖️ Peso do produto</button>
+        <button class="btn-sm btn-blue" onclick="cadcPesagens(${c.id})" title="Ver todas as pesagens: série, peso e hora">📋 Pesagens</button>
+      </div>
+
+      <div class="cc-campos">
+        <div class="form-group"><label>Produto</label>
+          <select onchange="cadcMudar(${c.id},{produto_id:Number(this.value)},'Produto alterado — o tablet já foi avisado')">
+            ${c.produto ? '' : '<option value="">Selecione…</option>'}${prodFora}${optProd}</select></div>
+        <div class="form-group"><label>Turno</label>
+          <select onchange="cadcMudar(${c.id},{turno_id:Number(this.value)},'Turno alterado')">
+            ${c.turno ? '' : '<option value="">Selecione…</option>'}${turnoFora}${optTurno}</select></div>
+        <div class="form-group"><label>Takt (min)</label>
+          <input type="number" step="0.1" min="0.1" value="${c.takt_min ?? ''}" title="${c.takt_manual ? 'Takt definido aqui. Apague para voltar ao do cadastro (' + c.takt_cadastro + ' min)' : 'Takt do cadastro do produto'}"
+                 style="${c.takt_manual ? 'border-color:var(--yellow)' : ''}"
+                 onchange="cadcMudar(${c.id},{takt_min:this.value},'Takt alterado')"></div>
+      </div>
+
+      <div class="cc-rot">🔊 Falar no tablet desta célula</div>
+      <div class="cc-linha">
+        <input type="text" maxlength="300" data-rasc="voz-${c.id}" id="cc-voz-${c.id}" value="${esc(rasc['voz-' + c.id] || '')}" placeholder="Digite e aperte Enter — o tablet fala em voz alta" onkeydown="if(event.key==='Enter')cadcFalar(${c.id})">
+        <button class="btn-sm btn-blue" onclick="cadcFalar(${c.id})">🔊 Falar</button>
+      </div>
+      <div class="cc-frases">${CC_FRASES.map(f => `<button onclick="cadcFalar(${c.id}, this.textContent)">${esc(f)}</button>`).join('')}</div>
+
+      <div class="cc-rot">📌 Mensagem fixa na tela do tablet</div>
+      <div class="cc-linha">
+        <input type="text" maxlength="200" data-rasc="msg-${c.id}" id="cc-msg-${c.id}" value="${esc(rasc['msg-' + c.id] ?? c.mensagem)}" placeholder="Ex.: OP 123456 — 40 peças" onkeydown="if(event.key==='Enter')cadcMensagem(${c.id})">
+        <button class="btn-sm btn-ghost" onclick="cadcMensagem(${c.id})">Mostrar</button>
+        ${c.mensagem ? `<button class="btn-sm btn-ghost" onclick="cadcMensagem(${c.id}, '')">Limpar</button>` : ''}
+      </div>
+
+      <div class="cc-acoes">
+        <button class="btn-sm btn-blue" onclick="cadcCiclos(${c.id})" title="Ver e editar todos os ciclos: concluído / não concluído e o motivo">📋 Ciclos e motivos</button>
+        ${c.pausada
+          ? `<button class="btn-sm btn-accent" onclick="cadcRetomar(${c.id})">▶ Retomar linha</button>`
+          : `<button class="btn-sm btn-red" onclick="cadcPausar(${c.id}, true)">🤸 Pausa laboral</button>
+             <button class="btn-sm btn-ghost" onclick="cadcPausar(${c.id}, false)">⏸ Pausar…</button>`}
+        <button class="btn-sm btn-ghost" onclick="cadcMudar(${c.id},{voz_ativa:${!c.voz_ativa}},'${c.voz_ativa ? 'Avisos automáticos desligados' : 'Avisos automáticos ligados'}')"
+                title="“Ciclo finalizado”, intervalos e fim de turno">${c.voz_ativa ? '🔔 Avisos de ciclo: ligados' : '🔕 Avisos de ciclo: desligados'}</button>
+        <button class="btn-sm btn-ghost" onclick="cadcReiniciar(${c.id})" title="Zera o tempo parado e recomeça a contagem de ciclos">↺ Reiniciar contagem</button>
+        <button class="btn-sm btn-accent" onclick="cadcFinalizar(${c.ordem.id})" title="Encerra a célula e envia a produção ao Plano de Produção (Apontamento Diário)">✅ Finalizar e enviar ao Plano</button>
+      </div>
+
+      ${ccTabsHTML(c)}
+    </div>`;
+  }).join('');
+
+  if (foco) {
+    const el = document.getElementById(foco.id);
+    if (el) { el.focus(); try { el.setSelectionRange(foco.a, foco.b); } catch (e) {} }
+  }
+}
+
+/* Parte que anda sozinha: relógio, ciclo, contagem regressiva e situação.
+   Usa o relógio oficial do servidor e a MESMA conta do tablet (js/cadc.js) — o número é igual nas duas telas. */
+function cadcVivo() {
+  if (!ccVisao) return;
+  const agora = Cadc.agora();
+  const hr = document.getElementById('cc-hora'); if (hr) hr.textContent = '🕒 ' + agora;
+  for (const c of ccVisao.celulas) {
+    const st = document.getElementById('cc-st-' + c.id);
+    if (!st) continue;
+    try {
+      const s = Cadc.situacao(c, agora);
+      const card = st.closest('.cc-card');
+      let rot = 'Próximo ciclo', val = '--:--', badge = ['green', 'Rodando'], pct = 0, alerta = false;
+
+      if (c.pausada) {
+        const pz = Cadc.pausa(c);
+        badge = ['red', 'Pausada'];
+        if (pz.restante != null) {
+          rot = (c.pausa_motivo || 'Pausada') + ' · volta em'; val = Cadc.curto(pz.restante);
+          pct = pz.total > 0 ? (1 - pz.restante / pz.total) * 100 : 0;
+        } else { rot = (c.pausa_motivo || 'Pausada') + ' · parada há'; val = Cadc.curto(pz.decorrido); pct = 100; }
+      } else if (s.fase === 'sem-config') { badge = ['yellow', 'Falta configurar']; rot = 'Defina produto e turno'; }
+      else if (s.fase === 'fora' || s.fase === 'encerrado') { badge = ['blue', 'Turno encerrado']; rot = 'Turno encerrado'; val = 'FIM'; pct = 100; }
+      else {
+        if (s.fase === 'intervalo') badge = ['orange', 'Intervalo'];
+        rot = s.proximo.rot; val = Cadc.curto(s.proximo.restante);
+        pct = (1 - s.proximo.restante / s.proximo.janela) * 100;
+        alerta = s.fase === 'rodando' && s.proximo.rot === 'Próximo ciclo' && s.proximo.restante <= 30;
+      }
+      st.className = 'badge ' + badge[0]; st.textContent = badge[1];
+      card.classList.toggle('fora', !c.pausada && (s.fase === 'fora' || s.fase === 'encerrado' || s.fase === 'sem-config'));
+      card.classList.toggle('alerta', alerta);
+      card.classList.toggle('fim', !c.pausada && (s.fase === 'fora' || s.fase === 'encerrado'));
+      document.getElementById('cc-ci-' + c.id).textContent = s.total ? `${s.ciclo} / ${s.total}` : '—';
+      document.getElementById('cc-pr-rot-' + c.id).textContent = rot;
+      const pr = document.getElementById('cc-pr-' + c.id);
+      pr.textContent = val; pr.classList.toggle('longo', val.length > 5);
+      document.getElementById('cc-pb-' + c.id).style.width = Math.min(100, Math.max(0, pct)) + '%';
+      const hh = Cadc.historico(c, agora);
+      const okEl = document.getElementById('cc-ok-' + c.id);
+      okEl.textContent = `✓ ${hh.ok} concl. · ✕ ${hh.nok} não`;
+      okEl.style.color = hh.nok ? 'var(--red)' : 'var(--text2)';
+      const pe = document.getElementById('cc-pes-' + c.id);
+      if (pe) pe.innerHTML = ccPesTxt(c, s);
+    } catch (e) { console.error('cadc vivo', c.id, e); }
+  }
+}
+
+/* Faixa "Pesagem" do cartão: peças pesadas x meta x cadência, peso do produto e balança da célula. */
+function ccPesTxt(c, s) {
+  const pz = c.pesagem || { ok: 0, nok: 0 }, kg = n => Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  const meta = c.ordem && c.ordem.meta > 0 ? Math.round(c.ordem.meta) : s.total;
+  const previsto = s.fase === 'fora' || s.fase === 'sem-config' ? 0 : s.feitos;
+  const saldo = pz.ok - previsto;
+  const ests = (ccVisao.estacoes || []).filter(e => e.celula_id === c.id);
+  const p = c.produto || {};
+  const l1 = [`⚖️ Pesados <b>${pz.ok}</b>${meta ? ' / ' + meta : ''}`,
+    `cadência previa <b>${previsto}</b>`,
+    `saldo <b class="${saldo < 0 ? 'neg' : 'pos'}">${saldo > 0 ? '+' : ''}${saldo}</b>`];
+  if (pz.nok) l1.push(`<b class="neg">${pz.nok} peso(s) incorreto(s)</b>`);
+  if (pz.ultima) l1.push(`última ${pz.ultima.slice(0, 5)}`);
+  const l2 = [p.peso_kg ? `Peso do produto <b>${kg(p.peso_kg)} kg</b>${p.peso_tol_kg != null ? ' ± ' + kg(p.peso_tol_kg) : ''}` : '<span class="neg">produto sem peso cadastrado</span>',
+    ests.length ? ests.map(e => `${esc(e.nome || 'Balança')}: ${e.online ? (e.balanca_ok ? '🟢 lendo' + (e.ultimo_peso != null ? ' ' + kg(e.ultimo_peso) + ' kg' : '') : '🟡 tela aberta, balança desligada') : '🔴 sem sinal'}`).join(' · ') : 'sem estação de pesagem'];
+  return l1.join(' · ') + '<br>' + l2.join(' · ');
+}
+
+function cadcDesenharEstacoes() {
+  const v = ccVisao, tb = document.getElementById('cc-estacoes');
+  const lista = v.estacoes || [];
+  if (!lista.length) {
+    tb.innerHTML = '<tr><td colspan="5" style="color:var(--text2)">Nenhuma estação ainda. No notebook da linha, abra o Portal no Chrome e clique em <b>Estação de Pesagem</b> (ou o endereço <b>/pesagem</b>).</td></tr>';
+    return;
+  }
+  tb.innerHTML = lista.map(e => `
+    <tr>
+      <td><b>${esc(e.nome || 'Balança')}</b></td>
+      <td>${e.online ? '<span class="badge green">Online</span>' : '<span class="badge red">Sem sinal</span>'}</td>
+      <td>${!e.online ? '—' : e.balanca_ok ? '🟢 lendo' + (e.ultimo_peso != null ? ' · ' + Number(e.ultimo_peso).toLocaleString('pt-BR', { minimumFractionDigits: 3 }) + ' kg' : '') : '🟡 desligada / sem cabo'}</td>
+      <td><select onchange="cadcEstacaoMover(${e.id}, this.value)">
+            <option value="">— sem célula —</option>
+            ${v.celulas.map(c => `<option value="${c.id}"${e.celula_id === c.id ? ' selected' : ''}>${esc(c.nome)}</option>`).join('')}
+          </select></td>
+      <td style="white-space:nowrap">
+        <button class="btn-sm btn-ghost" onclick="cadcEstacaoRenomear(${e.id})">✏️</button>
+        <button class="btn-sm btn-ghost" title="Apagar esta estação da lista" onclick="cadcEstacaoApagar(${e.id})">🗑️</button>
+      </td>
+    </tr>`).join('');
+}
+
+function cadcDesenharTablets() {
+  const v = ccVisao, tb = document.getElementById('cc-tablets');
+  if (!v.tablets.length) {
+    tb.innerHTML = '<tr><td colspan="6" style="color:var(--text2)">Nenhum tablet conectado ainda. No tablet, abra o Portal e toque em <b>Cadenciador da Célula</b>.</td></tr>';
+    return;
+  }
+  tb.innerHTML = v.tablets.map(t => `
+    <tr>
+      <td><b>${esc(t.nome || 'Tablet')}</b></td>
+      <td>${t.online ? '<span class="badge green">Online</span>' : `<span class="badge red">Sem sinal</span> <span style="color:var(--text2);font-size:11px">${
+        t.visto_ha_seg == null ? 'nunca conectou' : t.visto_ha_seg < 3600 ? 'há ' + Math.max(1, Math.round(t.visto_ha_seg / 60)) + ' min' : t.visto_ha_seg < 172800 ? 'há ' + Math.round(t.visto_ha_seg / 3600) + ' h' : 'há ' + Math.round(t.visto_ha_seg / 86400) + ' dias'}</span>`}</td>
+      <td>${!t.online ? '—' : t.som_ok ? '🔊 ativo' : '<span title="Falta um toque na tela do tablet">🔇 falta um toque</span>'}</td>
+      <td><select onchange="cadcMover(${t.id}, this.value)">
+            <option value="">— livre (sem célula) —</option>
+            ${v.celulas.map(c => `<option value="${c.id}"${t.celula_id === c.id ? ' selected' : ''}>${esc(c.nome)}</option>`).join('')}
+          </select></td>
+      <td>${esc(t.usuario || '—')}</td>
+      <td style="white-space:nowrap">
+        <button class="btn-sm btn-ghost" onclick="cadcFalarTablet(${t.id})" ${t.celula_id ? '' : 'disabled'}>🔊 Falar só nele</button>
+        <button class="btn-sm btn-ghost" onclick="cadcRenomearTablet(${t.id})">✏️</button>
+        <button class="btn-sm btn-ghost" title="Recarregar a tela do tablet" onclick="cadcRecarregar(${t.id})" ${t.celula_id ? '' : 'disabled'}>↻</button>
+        <button class="btn-sm btn-ghost" title="Liberar da célula" onclick="cadcLiberar(${t.id})" ${t.celula_id ? '' : 'disabled'}>🔓 Liberar</button>
+        <button class="btn-sm btn-ghost" title="Apagar este tablet da lista" onclick="cadcEsquecer(${t.id})">🗑️</button>
+      </td>
+    </tr>`).join('');
+}
+
+function cadcDesenharLog() {
+  const v = ccVisao, el = document.getElementById('cc-log');
+  if (!v.comandos.length) { el.innerHTML = '<div style="color:var(--text2);border:none">Nenhum aviso enviado ainda.</div>'; return; }
+  el.innerHTML = v.comandos.filter(k => k.tipo === 'voz').map(k => {
+    const alvo = v.tablets.filter(t => t.celula_id === k.celula_id && (!k.tablet_id || t.id === k.tablet_id));
+    const ok = alvo.filter(t => t.ultimo_cmd >= k.id).length;
+    return `<div class="${k.origem === 'auto' ? 'auto' : ''}">
+      <span class="h">${new Date(k.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+      <span class="c">${esc(k.celula_nome)}${k.tablet_nome ? ' › ' + esc(k.tablet_nome) : ''}</span>
+      <span class="t">${k.origem === 'auto' ? '⚙️ ' : '🔊 '}${esc(k.texto)}</span>
+      <span class="h" title="Tablets que já receberam">${alvo.length ? `✓ ${ok}/${alvo.length}` : 'sem tablet'}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- ações ---------- */
+async function cadcAcao(fn, msg) {
+  try { await fn(); if (msg) toast(msg); await cadcAtualizar(true); return true; }
+  catch (e) { toast(e.message, 'error'); await cadcAtualizar(true); return false; }
+}
+const cadcCel = id => ccVisao.celulas.find(c => c.id === id);
+const cadcTab = id => ccVisao.tablets.find(t => t.id === id);
+
+/* ═══════════ Programação: células ativas × programadas, OP e séries, envio ao Plano ═══════════ */
+let ccVistaAtual = 'ativas', ccOrdemEdit = null, ccFim = null, ccFimQtdManual = false;
+
+function cadcVista(v) {
+  ccVistaAtual = v;
+  document.getElementById('cc-v-ativas').style.display = v === 'ativas' ? '' : 'none';
+  document.getElementById('cc-v-prog').style.display = v === 'prog' ? '' : 'none';
+  document.getElementById('cc-bt-ativas').classList.toggle('on', v === 'ativas');
+  document.getElementById('cc-bt-prog').classList.toggle('on', v === 'prog');
+}
+
+/* Quantas peças entre duas séries (inclusive) e qual a série seguinte — mesma conta do servidor */
+function ccQtdSeries(a, b) {
+  const x = /^(.*?)(\d+)$/.exec(a || ''), y = /^(.*?)(\d+)$/.exec(b || '');
+  if (!x || !y) return null;
+  const casas = Math.min(x[2].length, y[2].length, 15);
+  if (a.slice(0, a.length - casas) !== b.slice(0, b.length - casas)) return null;
+  const n = Number(b.slice(-casas)) - Number(a.slice(-casas)) + 1;
+  return Number.isFinite(n) ? n : null;
+}
+function ccProxSerie(s) {
+  const m = /^(.*?)(\d+)$/.exec(s || ''); if (!m) return null;
+  const casas = Math.min(m[2].length, 15);
+  const p = String(Number(s.slice(-casas)) + 1);
+  return p.length > casas ? null : s.slice(0, s.length - casas) + p.padStart(casas, '0');
+}
+const ccSerieOk = s => /^[A-Z0-9]{13}$/.test(s || '');
+function ccDiaTxt(d) {
+  const h = ccVisao ? ccVisao.hoje : isoHoje();
+  return (d === h ? 'Hoje' : d === addDias(h, 1) ? 'Amanhã' : diaSemana(d).split('-')[0]) + ' · ' + fmtData(d).slice(0, 5);
+}
+const ccPlano = op => (ccCad.planos || []).find(p => p.num_op === op);
+
+/** Programação por id, de onde ela estiver (programada, pendente ou rodando em uma célula). */
+function ccOrdemDe(id) {
+  const v = ccVisao;
+  let o = v.programadas.find(x => x.id === id) || v.pendentes.find(x => x.id === id);
+  if (o) return o;
+  const c = v.celulas.find(x => x.ordem && x.ordem.id === id);
+  if (!c) return null;
+  return { ...c.ordem, status: 'ativa', celula_nome: c.nome, celula_id: c.id, turno_id: c.turno ? c.turno.id : null,
+           turno_nome: c.turno ? c.turno.nome : '', produto_id: c.produto ? c.produto.id : null,
+           prod_nome: c.produto ? c.produto.nome : '', takt_min: c.takt_min, _cel: c };
+}
+
+function cadcKpis() {
+  const v = ccVisao;
+  const at = v.celulas.filter(c => !c.ociosa);
+  const oper = at.reduce((s, c) => s + (c.ordem.operadores || 0), 0);
+  const horas = at.reduce((s, c) => s + (c.ordem.operadores || 0) * (c.ordem.horas_operador || 0), 0);
+  const prods = new Set(at.map(c => c.produto && c.produto.nome).filter(Boolean));
+  const meta = at.reduce((s, c) => s + (c.ordem.meta || 0), 0);
+  const semOp = at.filter(c => !c.ordem.num_op).length;
+  const k = [
+    { lbl: 'Células rodando', val: `${at.length} / ${v.celulas.length}`, cor: 'green' },
+    { lbl: 'Operadores', val: oper, cor: 'blue' },
+    { lbl: 'Horas disponíveis', val: fmtH(horas), cor: 'blue' },
+    { lbl: 'Produtos rodando', val: prods.size, cor: 'orange', sub: semOp ? `⚠ ${semOp} célula(s) sem OP` : '', alerta: true },
+    { lbl: 'Meta do dia', val: meta ? fmtNum(meta) : '—', cor: 'yellow' },
+    { lbl: 'Apontado no dia', val: fmtNum(v.apontado.qtd), cor: 'green', sub: v.apontado.n + ' apontamento(s)' }
+  ];
+  if (v.pendentes.length) k.push({ lbl: 'Pendentes de envio', val: v.pendentes.length, cor: 'red', sub: 'falta enviar ao Plano', alerta: true });
+  document.getElementById('cc-kpis').innerHTML = k.map(x => `<div class="kpi ${x.cor}"><div class="lbl">${x.lbl}</div><div class="val">${x.val}</div>${x.sub ? `<div style="font-size:10px;color:${x.alerta ? 'var(--yellow)' : 'var(--text2)'};margin-top:4px">${x.sub}</div>` : ''}</div>`).join('');
+  document.getElementById('cc-n-ativas').textContent = at.length;
+  document.getElementById('cc-n-prog').textContent = v.programadas.length;
+}
+
+/* Linha "o que está rodando": OP, séries, meta, equipe — o que antes era digitado dia a dia */
+function ccProgLinha(c) {
+  const o = c.ordem; if (!o) return '';
+  const qtd = o.serie_inicial && o.serie_final ? ccQtdSeries(o.serie_inicial, o.serie_final) : null;
+  const horas = (o.operadores || 0) * (o.horas_operador || 0);
+  const hp = o.cod_decio ? (ccCad.horas_por_peca || {})[o.cod_decio] : null;
+  const cap = hp && horas ? Math.floor(horas / hp) : null;
+  const l1 = [
+    o.num_op ? `OP <b>${esc(o.num_op)}</b>` : '<span class="sem">sem OP</span>',
+    o.serie_inicial || o.serie_final
+      ? `Séries <b>${esc(o.serie_inicial || '?')}</b> → <b>${esc(o.serie_final || '?')}</b>${qtd > 0 ? ` (${qtd} pç)` : ''}`
+      : '<span class="sem">sem n° de série</span>'
+  ];
+  const l2 = [];
+  if (o.meta != null) l2.push(`Meta <b>${fmtNum(o.meta)} pç</b>`);
+  if (o.operadores != null) l2.push(`👷 <b>${o.operadores}</b> oper.${o.horas_operador ? ` × ${fmtNum(o.horas_operador)} h = <b>${fmtH(horas)}</b>` : ''}`);
+  if (cap != null) l2.push(`capacidade <b>${fmtNum(cap)} pç</b>`);
+  if (o.cod_decio) l2.push(`cód. <b>${esc(o.cod_decio)}</b>`);
+  return `<div class="cc-prog-l"><div>📋 ${l1.join(' · ')}${l2.length ? '<br>' + l2.join(' · ') : ''}${o.obs ? '<br>💬 ' + esc(o.obs) : ''}</div>
+    <button class="cc-ico" title="Editar OP, séries, meta e equipe" onclick="cadcProgEditar(${o.id})">✏️</button></div>`;
+}
+
+function ccTabsHTML(c) {
+  const v = ccVisao;
+  const tabs = v.tablets.filter(t => t.celula_id === c.id);
+  const outros = v.tablets.filter(t => t.celula_id !== c.id);
+  return `<div class="cc-tabs">
+    <span>📱 Tablets:</span>
+    ${tabs.length ? tabs.map(t => `
+      <span class="cc-tab ${t.online ? 'on' : 'off'}" title="${t.online ? 'Online' : 'Sem sinal'}${t.online && !t.som_ok ? ' — som ainda não ativado (falta um toque na tela)' : ''}">
+        <i></i>${esc(t.nome || 'Tablet')}${t.online && !t.som_ok ? ' 🔇' : ''}
+        <select title="Trocar este tablet de célula" onchange="cadcMover(${t.id}, this.value)">
+          <option value="" selected disabled>⇄ trocar</option>
+          ${v.celulas.filter(x => x.id !== c.id).map(x => `<option value="${x.id}">→ ${esc(x.nome)}</option>`).join('')}
+          <option value="livre">🔓 Liberar (sem célula)</option>
+        </select>
+      </span>`).join('') : '<span>nenhum</span>'}
+    ${outros.length ? `<select class="cc-traz" title="Colocar um tablet nesta célula, daqui do PC" onchange="cadcMover(Number(this.value), ${c.id})">
+        <option value="" selected disabled>＋ Trazer tablet para cá</option>
+        ${outros.map(t => `<option value="${t.id}">${t.online ? '🟢' : '⚪'} ${esc(t.nome || 'Tablet')} — ${t.celula_id ? 'está em ' + esc((v.celulas.find(x => x.id === t.celula_id) || {}).nome || '?') : 'livre'}</option>`).join('')}
+      </select>` : (tabs.length ? '' : '<span>— abra <b>Cadenciador da Célula</b> no tablet</span>')}
+  </div>`;
+}
+
+function cadcDesenharPend() {
+  const v = ccVisao, el = document.getElementById('cc-pend');
+  if (!v.pendentes.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="cc-pend"><h4>⚠ ${v.pendentes.length} produção(ões) encerrada(s) aguardando envio ao Plano de Produção</h4>` +
+    v.pendentes.map(o => `<div class="it">
+      <div><b>${esc(o.celula_nome)}</b> · ${fmtData(o.dia)} · ${esc(o.turno_nome || '')} · <b>${esc(o.prod_nome || '')}</b><br>
+        ${o.num_op ? 'OP ' + esc(o.num_op) : '<span style="color:var(--yellow)">sem OP</span>'} · Séries ${esc(o.serie_inicial || '?')} → ${esc(o.serie_final || '?')}
+        · ${o.ciclos_ok || 0} ciclo(s) concluído(s)${o.ciclos_nok ? ', ' + o.ciclos_nok + ' não' : ''}</div>
+      <button class="btn-sm btn-accent" onclick="cadcFinalizar(${o.id})">✅ Finalizar e enviar</button>
+      <button class="btn-sm btn-ghost" onclick="cadcOrdemDescartar(${o.id})">Descartar</button>
+    </div>`).join('') + '</div>';
+}
+
+function cadcDesenharOciosas() {
+  const v = ccVisao, box = document.getElementById('cc-ociosas-box');
+  const oc = v.celulas.filter(c => c.ociosa);
+  if (!oc.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="cc-sec-t">Células sem programação rodando (${oc.length})</div><div class="cc-ociosas">` + oc.map(c => `
+    <div class="cc-oc" data-id="${c.id}">
+      <div class="cc-cab"><strong title="${esc(c.nome)}">${esc(c.nome)}</strong>
+        <button class="cc-ico" title="Renomear" onclick="cadcRenomear(${c.id})">✏️</button>
+        <button class="cc-ico" title="Excluir célula" onclick="cadcExcluir(${c.id})">🗑️</button></div>
+      <div>${c.proxima
+        ? `🗓 Próxima: <b style="color:var(--text)">${esc(c.proxima.produto || '')}</b> — ${ccDiaTxt(c.proxima.dia)}, ${esc(c.proxima.turno || '')} às ${esc(c.proxima.hora || '')} <span style="color:var(--accent)">(começa sozinha)</span>`
+        : 'Nada programado para esta célula.'}</div>
+      <div><button class="btn-sm btn-accent" data-cel="${esc(c.nome)}" onclick="cadcProgramar(this.dataset.cel)">＋ Programar esta célula</button></div>
+      ${ccTabsHTML(c)}
+    </div>`).join('') + '</div>';
+}
+
+function cadcDesenharProg() {
+  const v = ccVisao, tb = document.getElementById('cc-prog');
+  if (!v.programadas.length) {
+    tb.innerHTML = '<tr><td colspan="9" style="color:var(--text2);padding:22px;text-align:center">Nenhuma célula programada. Clique em <b>＋ Programar célula</b> e escolha “Próximo turno”, “Amanhã” ou outro dia.</td></tr>';
+    return;
+  }
+  tb.innerHTML = v.programadas.map(o => {
+    const qtd = o.serie_inicial && o.serie_final ? ccQtdSeries(o.serie_inicial, o.serie_final) : null;
+    return `<tr class="${o.dia === v.hoje ? 'hoje' : ''}" title="${esc(o.obs || '')}">
+      <td><b>${ccDiaTxt(o.dia)}</b><div style="font-size:11px;color:var(--text2)">${esc(o.turno_nome || '')} · ${esc(o.turno_inicio || '')}–${esc(o.turno_fim || '')}</div></td>
+      <td><b>${esc(o.celula_nome)}</b>${o.repetir ? ' <span class="badge blue" title="Repete todo dia útil">🔁</span>' : ''}${
+        o.tablets && o.tablets.length ? ` <span class="badge" title="Tablets que vão para a célula quando ela começar: ${esc(o.tablets.map(id => (v.tablets.find(t => t.id === id) || {}).nome || '?').join(', '))}">📱 ${o.tablets.length}</span>` : ''}</td>
+      <td>${esc(o.prod_nome || '—')}</td><td>${o.takt_min != null ? fmtNum(o.takt_min) + ' min' : '—'}</td>
+      <td>${o.num_op ? esc(o.num_op) : '<span style="color:var(--text2)">—</span>'}</td>
+      <td class="q">${o.serie_inicial || o.serie_final ? esc(o.serie_inicial || '?') + ' → ' + esc(o.serie_final || '?') + (qtd > 0 ? ` <span style="color:var(--text2)">(${qtd} pç)</span>` : '') : '<span style="color:var(--text2)">—</span>'}</td>
+      <td>${o.operadores ?? '—'}</td><td>${o.meta != null ? fmtNum(o.meta) : '—'}</td>
+      <td><button class="btn-sm btn-ghost" title="Começar agora, sem esperar" onclick="cadcOrdemIniciar(${o.id})">▶ Iniciar agora</button>
+          <button class="btn-sm btn-ghost" onclick="cadcProgEditar(${o.id})">✏️ Editar</button>
+          <button class="btn-sm btn-ghost" onclick="cadcOrdemCancelar(${o.id})">🗑️</button></td></tr>`;
+  }).join('');
+}
+
+function cadcDesenharEnv() {
+  const v = ccVisao;
+  document.getElementById('cc-env-card').style.display = v.enviadas.length ? '' : 'none';
+  document.getElementById('cc-env').innerHTML = v.enviadas.map(o => `<tr>
+    <td>${fmtData(o.dia)}</td><td><b>${esc(o.celula_nome)}</b></td><td>${esc(o.prod_nome || '')}</td><td>${esc(o.num_op || '')}</td>
+    <td>${esc(o.serie_inicial || '')}</td><td>${esc(o.serie_final_real || '')}</td><td><b>${fmtNum(o.realizado)}</b>${o.meta ? ' / ' + fmtNum(o.meta) : ''}</td>
+    <td>${o.enviada_em ? new Date(o.enviada_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</td></tr>`).join('');
+}
+
+/* ---------- programar / editar ---------- */
+async function ccRecarregarCadastros() {
+  try { ccCad = await api(CC + '/admin/cadastros'); } catch (e) { return; }
+  const nomes = [...new Set([...(ccCad.celulas_cadastro || []), ...(ccVisao ? ccVisao.celulas.map(c => c.nome) : [])])];
+  document.getElementById('cc-dl-celulas').innerHTML = nomes.map(n => `<option value="${esc(n)}">`).join('');
+  document.getElementById('cc-dl-ops').innerHTML = (ccCad.planos || []).map(p =>
+    `<option value="${esc(p.num_op)}">${esc((p.descricao || '').slice(0, 40))} — ${fmtNum(p.realizado)}/${fmtNum(p.meta)}${p.status === 'concluido' ? ' (concluído)' : ''}</option>`).join('');
+  const sp = document.getElementById('cc-o-produto'), st = document.getElementById('cc-o-turno'), vp = sp.value, vt = st.value;
+  sp.innerHTML = '<option value="">Selecione…</option>' + ccCad.produtos.map(p => `<option value="${p.id}">${esc(p.nome)} — ${p.takt_min} min</option>`).join('');
+  st.innerHTML = ccCad.turnos.map(t => `<option value="${t.id}">${esc(t.nome)} (${String(t.hora_inicio).slice(0, 5)}–${String(t.hora_fim).slice(0, 5)})</option>`).join('');
+  sp.value = vp; if (vt) st.value = vt;
+}
+const ccV = id => document.getElementById(id).value.trim();
+const ccS = (id, v) => { document.getElementById(id).value = v == null ? '' : v; };
+
+/** Turno que está rodando agora (ou null) e o próximo a começar. */
+function ccTurnosAgora() {
+  const agora = Cadc.agoraSeg();
+  let rodando = null, proximo = null, espera = Infinity;
+  for (const t of ccCad.turnos) {
+    const o = Cadc.off(Cadc.hms(agora), t);
+    if (o <= Cadc.dur(t)) { if (!rodando) rodando = t; continue; }
+    if (86400 - o < espera) { espera = 86400 - o; proximo = t; }
+  }
+  return { rodando, proximo, espera, viraDia: proximo ? Cadc.seg(proximo.hora_inicio) <= agora : false };
+}
+
+async function cadcProgramar(celNome) {
+  await ccRecarregarCadastros();
+  ccOrdemEdit = null;
+  ['cc-o-celula', 'cc-o-produto', 'cc-o-takt', 'cc-o-op', 'cc-o-si', 'cc-o-sf', 'cc-o-oper', 'cc-o-horas', 'cc-o-meta', 'cc-o-obs'].forEach(i => ccS(i, ''));
+  document.getElementById('cc-o-rep').checked = false;
+  document.getElementById('cc-o-titulo').textContent = '＋ Programar célula';
+  document.getElementById('cc-o-salvar').textContent = 'Programar';
+  document.getElementById('cc-o-bloco-cad').style.display = '';
+  const t = ccTurnosAgora();
+  ccS('cc-o-data', ccVisao.hoje);
+  if (t.rodando || t.proximo) ccS('cc-o-turno', (t.rodando || t.proximo).id);
+  document.getElementById('cc-o-tabs-bloco').style.display = '';
+  document.getElementById('cc-o-tabs').innerHTML = '';
+  if (typeof celNome === 'string' && celNome) { ccS('cc-o-celula', celNome); cadcProgCelula(); }
+  else cadcProgTablets([]);
+  cadcProgDica();
+  document.getElementById('cc-m-prog').classList.add('show');
+  document.getElementById(celNome ? 'cc-o-produto' : 'cc-o-celula').focus();
+}
+
+async function cadcProgEditar(id) {
+  await ccRecarregarCadastros();
+  const o = ccOrdemDe(id); if (!o) return toast('Programação não encontrada', 'error');
+  ccOrdemEdit = o;
+  const rodando = o.status === 'ativa';
+  document.getElementById('cc-o-titulo').textContent = (rodando ? '✏️ ' + o.celula_nome + ' — OP, séries, meta e equipe' : '✏️ Editar programação — ' + o.celula_nome);
+  document.getElementById('cc-o-salvar').textContent = 'Salvar';
+  document.getElementById('cc-o-bloco-cad').style.display = rodando ? 'none' : '';
+  ccS('cc-o-celula', o.celula_nome); ccS('cc-o-produto', o.produto_id); ccS('cc-o-data', o.dia); ccS('cc-o-turno', o.turno_id);
+  ccS('cc-o-takt', o.takt_manual != null ? Number(o.takt_manual) : '');
+  ccS('cc-o-op', o.num_op); ccS('cc-o-si', o.serie_inicial); ccS('cc-o-sf', o.serie_final);
+  ccS('cc-o-oper', o.operadores); ccS('cc-o-horas', o.horas_operador); ccS('cc-o-meta', o.meta); ccS('cc-o-obs', o.obs);
+  document.getElementById('cc-o-rep').checked = !!o.repetir;
+  document.getElementById('cc-o-tabs-bloco').style.display = rodando ? 'none' : '';
+  if (!rodando) cadcProgTablets(o.tablets || []);
+  cadcProgDica();
+  document.getElementById('cc-m-prog').classList.add('show');
+}
+
+/* Tablets que acompanham a programação. `marcados` = ids já escolhidos (edição); senão, marca os que já estão na célula. */
+function cadcProgTablets(marcados) {
+  const v = ccVisao, box = document.getElementById('cc-o-tabs');
+  const nome = ccV('cc-o-celula').toLowerCase();
+  const cel = v.celulas.find(c => c.nome.toLowerCase() === nome);
+  const jaMarcados = marcados || [...box.querySelectorAll('input:checked')].map(i => Number(i.value));
+  if (!v.tablets.length) { box.innerHTML = '<span class="cc-dica">Nenhum tablet ligado ao sistema ainda. Abra “Cadenciador da Célula” no tablet uma vez.</span>'; return; }
+  box.innerHTML = v.tablets.map(t => {
+    const naCelula = cel && t.celula_id === cel.id;
+    const onde = naCelula ? 'já está nela' : t.celula_id ? 'está em ' + ((v.celulas.find(c => c.id === t.celula_id) || {}).nome || '?') : 'livre';
+    const on = naCelula || jaMarcados.includes(t.id);
+    return `<label class="cc-tk ${t.online ? '' : 'off'}" title="${t.online ? 'Online' : 'Sem sinal agora'}">
+      <input type="checkbox" value="${t.id}" ${on ? 'checked' : ''}> ${t.online ? '🟢' : '⚪'} ${esc(t.nome || 'Tablet')} <span style="color:var(--text2)">— ${esc(onde)}</span></label>`;
+  }).join('');
+}
+
+/* escolheu a célula: traz operadores e horas do cadastro dela */
+function cadcProgCelula() {
+  cadcProgTablets();
+  const c = (ccCad.celulas || []).find(x => x.nome.toLowerCase() === ccV('cc-o-celula').toLowerCase());
+  if (c) {
+    if (!ccV('cc-o-oper') && c.operadores) ccS('cc-o-oper', c.operadores);
+    if (!ccV('cc-o-horas') && c.horas_operador) ccS('cc-o-horas', c.horas_operador);
+  }
+  cadcProgDica();
+}
+
+function cadcProgQuando(tipo) {
+  const t = ccTurnosAgora(), hoje = ccVisao.hoje;
+  if (tipo === 'agora') {
+    ccS('cc-o-data', hoje);
+    if (t.rodando) ccS('cc-o-turno', t.rodando.id);
+    else toast('Nenhum turno em andamento agora — ficará para o início do turno escolhido', 'warn');
+  } else if (tipo === 'proximo') {
+    if (!t.proximo) return toast('Não há outro turno ativo cadastrado', 'warn');
+    ccS('cc-o-turno', t.proximo.id);
+    ccS('cc-o-data', t.viraDia ? addDias(hoje, 1) : hoje);
+  } else ccS('cc-o-data', addDias(hoje, 1));
+  cadcProgDica();
+}
+
+function cadcProgDica() {
+  // quando
+  const dq = document.getElementById('cc-o-quando-dica');
+  const turno = ccCad.turnos.find(t => String(t.id) === ccV('cc-o-turno'));
+  const dia = ccV('cc-o-data');
+  if (turno && dia && !(ccOrdemEdit && ccOrdemEdit.status === 'ativa')) {
+    const o = Cadc.off(Cadc.agora(), turno), emAndamento = o <= Cadc.dur(turno);
+    const hoje = ccVisao.hoje;
+    if (dia <= hoje && emAndamento) { dq.className = 'cc-dica ok'; dq.innerHTML = `▶ O <b>${esc(turno.nome)}</b> está em andamento: a célula <b>começa a rodar agora</b>.`; }
+    else {
+      const ini = String(turno.hora_inicio).slice(0, 5);
+      const quando = dia > hoje ? dia : (Cadc.seg(turno.hora_inicio) > Cadc.agoraSeg() ? hoje : addDias(hoje, 1));
+      dq.className = 'cc-dica'; dq.innerHTML = `🗓 Fica em <b>Programadas</b> e começa sozinha em <b>${ccDiaTxt(quando)} às ${ini}</b> (${esc(turno.nome)}).`;
+    }
+  } else dq.innerHTML = '';
+
+  // OP e séries
+  const op = ccV('cc-o-op'), si = ccV('cc-o-si'), sf = ccV('cc-o-sf');
+  const dop = document.getElementById('cc-o-op-dica'); const partes = []; let aviso = false;
+  if (op.length === 8) {
+    const p = ccPlano(op);
+    if (p) {
+      partes.push(`Plano: <b>${esc(p.descricao || p.cod_decio || '')}</b> — feito ${fmtNum(p.realizado)} de ${fmtNum(p.meta)}`);
+      // sugere o produto do cadenciador com o mesmo código Décio do plano
+      const sel = document.getElementById('cc-o-produto');
+      if (!sel.value && p.cod_decio) { const cp = ccCad.produtos.find(x => x.cod_decio && x.cod_decio === p.cod_decio); if (cp) sel.value = cp.id; }
+    } else { partes.push('⚠ OP ainda não cadastrada no plano mensal — cadastre antes de enviar a produção'); aviso = true; }
+  } else if (op) { partes.push('OP deve ter 8 dígitos'); aviso = true; }
+  if (si || sf) {
+    if ((si && !ccSerieOk(si)) || (sf && !ccSerieOk(sf))) { partes.push('cada n° de série deve ter 13 caracteres'); aviso = true; }
+    else if (si && sf) {
+      const q = ccQtdSeries(si, sf);
+      if (q > 0) { partes.push(`séries = <b>${q} peça${q === 1 ? '' : 's'}</b>`); const m = document.getElementById('cc-o-meta'); m.placeholder = 'ex.: ' + q; }
+      else if (q !== null) { partes.push('⚠ a série final é menor que a inicial'); aviso = true; }
+    }
+  }
+  dop.className = 'cc-dica' + (aviso ? ' av' : ''); dop.innerHTML = partes.join(' · ');
+
+  // capacidade
+  const oper = parseFloat(ccV('cc-o-oper')) || 0, hrs = parseFloat(ccV('cc-o-horas')) || 0;
+  const p = op.length === 8 ? ccPlano(op) : null;
+  const prod = ccCad.produtos.find(x => String(x.id) === ccV('cc-o-produto'));
+  const cod = (p && p.cod_decio) || (prod && prod.cod_decio);
+  const hp = cod ? (ccCad.horas_por_peca || {})[cod] : null;
+  document.getElementById('cc-o-cap-dica').innerHTML = oper && hrs
+    ? `Horas disponíveis: <b>${fmtH(oper * hrs)}</b>${hp ? ` · capacidade: <b>${fmtNum(Math.floor(oper * hrs / hp))} pç</b>` : ''}` : '';
+}
+
+async function cadcProgSalvar() {
+  const ed = ccOrdemEdit, rodando = ed && ed.status === 'ativa';
+  const corpo = {
+    num_op: ccV('cc-o-op'), serie_inicial: ccV('cc-o-si'), serie_final: ccV('cc-o-sf'),
+    operadores: ccV('cc-o-oper'), horas_operador: ccV('cc-o-horas'), meta: ccV('cc-o-meta'), obs: ccV('cc-o-obs'),
+    repetir: document.getElementById('cc-o-rep').checked
+  };
+  if (!rodando) Object.assign(corpo, {
+    celula_nome: ccV('cc-o-celula'), produto_id: Number(ccV('cc-o-produto')) || null, turno_id: Number(ccV('cc-o-turno')) || null,
+    takt_min: ccV('cc-o-takt'), data: ccV('cc-o-data'),
+    tablets: [...document.querySelectorAll('#cc-o-tabs input:checked')].map(i => Number(i.value))
+  });
+  if (!rodando && !corpo.celula_nome) return toast('Informe a célula', 'warn');
+  if (!rodando && (!corpo.produto_id || !corpo.turno_id)) return toast('Escolha o produto e o turno', 'warn');
+  if (corpo.num_op && corpo.num_op.length !== 8) return toast('N° OP deve ter 8 dígitos (ou ficar em branco)', 'warn');
+  if ((corpo.serie_inicial && !ccSerieOk(corpo.serie_inicial)) || (corpo.serie_final && !ccSerieOk(corpo.serie_final))) return toast('Cada n° de série deve ter 13 caracteres (letras/números)', 'warn');
+  if (corpo.serie_inicial && corpo.serie_final && ccQtdSeries(corpo.serie_inicial, corpo.serie_final) <= 0 && ccQtdSeries(corpo.serie_inicial, corpo.serie_final) !== null) return toast('A série final é menor que a inicial', 'warn');
+
+  const bt = document.getElementById('cc-o-salvar'); bt.disabled = true;
+  try {
+    let o, aviso = null;
+    if (ed) o = await api(CC + '/ordens/' + ed.id, { method: 'PUT', body: corpo });
+    else { const r = await api(CC + '/ordens', { method: 'POST', body: corpo }); o = r.ordem; aviso = r.aviso; }
+    cadcFechaModal('cc-m-prog');
+    if (ed) toast('Programação salva');
+    else if (o.status === 'ativa') { toast(`▶ ${o.celula_nome} já está rodando`); cadcVista('ativas'); }
+    else { toast(`🗓 ${o.celula_nome} programada para ${ccDiaTxt(o.dia)} às ${o.turno_inicio} — começa sozinha`); cadcVista('prog'); }
+    if (aviso) setTimeout(() => toast(aviso, 'warn'), 3200);
+  } catch (e) { toast(e.message, 'error'); }
+  finally { bt.disabled = false; await cadcAtualizar(true); }
+}
+
+function cadcOrdemIniciar(id) {
+  const o = ccOrdemDe(id);
+  if (!confirm(`Começar agora a programação de ${o.celula_nome} (${o.prod_nome})?\nSe a célula estiver rodando outra coisa, ela é encerrada e fica pendente de envio.`)) return;
+  cadcAcao(() => api(CC + '/ordens/' + id + '/iniciar', { method: 'POST', body: {} }), '▶ ' + o.celula_nome + ' rodando').then(ok => { if (ok) cadcVista('ativas'); });
+}
+function cadcOrdemCancelar(id) {
+  const o = ccOrdemDe(id);
+  if (!confirm(`Cancelar a programação de ${o.celula_nome} para ${fmtData(o.dia)}?`)) return;
+  cadcAcao(() => api(CC + '/ordens/' + id, { method: 'DELETE' }), 'Programação cancelada');
+}
+function cadcOrdemDescartar(id) {
+  const o = ccOrdemDe(id);
+  if (!confirm(`Descartar a produção de ${o.celula_nome} do dia ${fmtData(o.dia)} SEM enviar ao Plano de Produção?`)) return;
+  cadcAcao(() => api(CC + '/ordens/' + id, { method: 'DELETE' }), 'Descartada');
+}
+
+/* ---------- finalizar e enviar ao Plano de Produção ---------- */
+async function cadcFinalizar(id) {
+  await ccRecarregarCadastros();
+  const o = ccOrdemDe(id); if (!o) return toast('Programação não encontrada', 'error');
+  // ciclos concluídos desta programação (para conferir com os números de série)
+  let ok = o.ciclos_ok || 0, nok = o.ciclos_nok || 0;
+  if (o._cel) {
+    const h = Cadc.historico(o._cel, Cadc.agora()).lista.filter(x => x.rodada === undefined);
+    nok = h.filter(x => !x.concluido).length; ok = h.length - nok;
+  }
+  ccFim = { o, ok, nok }; ccFimQtdManual = false;
+  document.getElementById('cc-f-info').innerHTML = `<b>${esc(o.celula_nome)}</b> · ${esc(o.prod_nome || '')} · ${esc(o.turno_nome || '')}` +
+    (o.status === 'ativa' ? '<br>A célula <b>para de rodar</b> esta programação e a produção vira um <b>Apontamento Diário</b> no Plano de Produção.'
+                          : '<br>Esta produção já foi encerrada. Confira os números e envie.') +
+    (o._cel && o._cel.pesagem && o._cel.pesagem.ok ? `<br>⚖️ Balança: <b>${o._cel.pesagem.ok}</b> peça(s) pesada(s)` + (o._cel.pesagem.ultima_serie ? `, última série bipada <b>${esc(o._cel.pesagem.ultima_serie)}</b>` : '') + '.' : '');
+  ccS('cc-f-data', o.dia); ccS('cc-f-op', o.num_op); ccS('cc-f-meta', o.meta);
+  ccS('cc-f-si', o.serie_inicial); ccS('cc-f-sf', o.serie_final); ccS('cc-f-obs', o.obs); ccS('cc-f-qtd', '');
+  document.getElementById('cc-f-cont').checked = !!o.repetir;
+  document.getElementById('cc-f-so-enc').style.display = o.status === 'ativa' ? '' : 'none';
+  cadcFimSeries();
+  document.getElementById('cc-m-fim').classList.add('show');
+  const sf = document.getElementById('cc-f-sf'); sf.focus(); sf.select();
+}
+
+function cadcFimSeries() {
+  const o = ccFim.o, si = ccV('cc-f-si'), sf = ccV('cc-f-sf');
+  const d = document.getElementById('cc-f-serie-dica'); let txt = '', av = false;
+  const q = ccSerieOk(si) && ccSerieOk(sf) ? ccQtdSeries(si, sf) : null;
+  if (q > 0 && !ccFimQtdManual) ccS('cc-f-qtd', q);
+  if ((si && !ccSerieOk(si)) || (sf && !ccSerieOk(sf))) { txt = 'Cada n° de série deve ter 13 caracteres.'; av = true; }
+  else if (q !== null && q <= 0) { txt = '⚠ O último n° produzido é menor que o inicial.'; av = true; }
+  else if (o.serie_final && sf === o.serie_final) txt = `Está com a <b>última série programada</b>. Se a produção não chegou até ela, troque pelo último número realmente produzido.`;
+  else if (q > 0) txt = `Da série inicial até esta são <b>${q} peça${q === 1 ? '' : 's'}</b>.`;
+  d.className = 'cc-dica' + (av ? ' av' : ''); d.innerHTML = txt;
+
+  // o que faltou
+  const prox = ccSerieOk(sf) ? ccProxSerie(sf) : null;
+  const falta = prox && o.serie_final ? ccQtdSeries(prox, o.serie_final) : null;
+  const cont = document.getElementById('cc-f-cont'), ct = document.getElementById('cc-f-cont-t');
+  if (falta > 0) {
+    ct.innerHTML = `Faltaram <b>${falta} peça${falta === 1 ? '' : 's'}</b> (séries ${esc(prox)} → ${esc(o.serie_final)}): <b>programar para o próximo dia útil</b>, no mesmo turno`;
+    if (!ccFim.tocouCont) cont.checked = true;
+  } else {
+    ct.innerHTML = 'Repetir esta programação no próximo dia útil, no mesmo turno';
+    if (!ccFim.tocouCont) cont.checked = !!o.repetir;
+  }
+  cont.onchange = () => { ccFim.tocouCont = true; };
+  cadcFimDica();
+}
+
+function cadcFimDica() {
+  const qtd = parseFloat(ccV('cc-f-qtd')) || 0;
+  const dq = document.getElementById('cc-f-qtd-dica');
+  dq.className = 'cc-dica';
+  dq.innerHTML = `Cadenciador: <b>${ccFim.ok}</b> ciclo(s) concluído(s)${ccFim.nok ? ` e <b>${ccFim.nok}</b> não concluído(s)` : ''}.` +
+    (qtd && ccFim.ok && qtd !== ccFim.ok ? ` <span style="color:var(--yellow)">A quantidade (${qtd}) é diferente dos ciclos — confira.</span>` : '');
+  const op = ccV('cc-f-op'), dp = document.getElementById('cc-f-plano-dica');
+  if (op.length !== 8) { dp.className = 'cc-dica av'; dp.innerHTML = 'Informe a OP (8 dígitos) para enviar ao Plano.'; return; }
+  const p = ccPlano(op);
+  if (!p) { dp.className = 'cc-dica av'; dp.innerHTML = `⚠ A OP ${esc(op)} não está no plano mensal. Cadastre o plano dela em <a href="/progestao/producao" target="_blank">Plano de Produção</a> e volte aqui.`; return; }
+  dp.className = 'cc-dica ok';
+  dp.innerHTML = `Plano da OP: <b>${esc(p.descricao || '')}</b> — feito ${fmtNum(p.realizado)} de ${fmtNum(p.meta)}${qtd ? ` → com este envio: <b>${fmtNum(p.realizado + qtd)}</b>` : ''}`;
+}
+
+async function cadcFimEnviar(enviar) {
+  const o = ccFim.o;
+  const corpo = { enviar };
+  if (enviar) {
+    Object.assign(corpo, { data_execucao: ccV('cc-f-data'), num_op: ccV('cc-f-op'), serie_inicial: ccV('cc-f-si'), serie_final_real: ccV('cc-f-sf'),
+      realizado: ccV('cc-f-qtd'), meta: ccV('cc-f-meta'), observacoes: ccV('cc-f-obs'), continuar: document.getElementById('cc-f-cont').checked });
+    if (corpo.num_op.length !== 8) return toast('N° OP deve ter 8 dígitos', 'warn');
+    if (!ccSerieOk(corpo.serie_inicial)) return toast('N° de série inicial deve ter 13 caracteres', 'warn');
+    if (!ccSerieOk(corpo.serie_final_real)) return toast('Informe o último n° de série produzido (13 caracteres)', 'warn');
+    if (!(parseFloat(corpo.realizado) > 0)) return toast('Informe a quantidade realizada', 'warn');
+  } else if (!confirm(`Parar ${o.celula_nome} agora e deixar o envio ao Plano para depois?`)) return;
+
+  const bts = ['cc-f-enviar', 'cc-f-so-enc'].map(i => document.getElementById(i)); bts.forEach(b => b.disabled = true);
+  try {
+    const r = await api(CC + '/ordens/' + o.id + '/finalizar', { method: 'POST', body: corpo });
+    cadcFechaModal('cc-m-fim');
+    if (enviar) {
+      toast(`✅ Enviado ao Plano de Produção: ${fmtNum(corpo.realizado)} pç na OP ${corpo.num_op}`);
+      if (r.continuacao) setTimeout(() => toast(`🗓 ${r.continuacao.celula_nome} programada para ${ccDiaTxt(r.continuacao.dia)} às ${r.continuacao.turno_inicio}`), 3200);
+      if (r.aviso) setTimeout(() => toast(r.aviso, 'warn'), 3200);
+    } else toast('Célula encerrada — a produção ficou em “Pendentes de envio”');
+  } catch (e) { toast(e.message, 'error'); }
+  finally { bts.forEach(b => b.disabled = false); await cadcAtualizar(true); }
+}
+
+function cadcMudar(id, corpo, msg) { return cadcAcao(() => api(CC + '/celulas/' + id, { method: 'PUT', body: corpo }), msg); }
+function cadcRenomear(id) {
+  const c = cadcCel(id); const nome = prompt('Novo nome da célula:', c.nome);
+  if (nome && nome.trim() && nome.trim() !== c.nome) cadcMudar(id, { nome: nome.trim() }, 'Nome alterado');
+}
+function cadcExcluir(id) {
+  const c = cadcCel(id);
+  if (!confirm(`Excluir a célula "${c.nome}"?\nOs tablets conectados nela voltam para a tela de escolha.` + (c.ociosa ? '' : '\n\nEla está RODANDO: a produção de agora fica em “Pendentes de envio” (se tiver OP).'))) return;
+  cadcAcao(() => api(CC + '/celulas/' + id, { method: 'DELETE' }), 'Célula excluída');
+}
+function cadcMensagem(id, valor) {
+  const txt = valor !== undefined ? valor : document.getElementById('cc-msg-' + id).value.trim();
+  const campo = document.getElementById('cc-msg-' + id); if (campo) { campo.value = txt; campo.blur(); }
+  cadcMudar(id, { mensagem: txt }, txt ? 'Mensagem na tela do tablet' : 'Mensagem removida');
+}
+async function cadcFalar(id, frase) {
+  const campo = document.getElementById('cc-voz-' + id);
+  const txt = (frase || campo.value).trim();
+  if (!txt) return toast('Digite o que o tablet deve falar', 'warn');
+  const n = ccVisao.tablets.filter(t => t.celula_id === id && t.online).length;
+  if (!frase) campo.value = '';
+  const ok = await cadcAcao(() => api(CC + '/voz', { method: 'POST', body: { celula_id: id, texto: txt } }),
+      n ? `🔊 Enviado para ${n} tablet${n === 1 ? '' : 's'}` : null);
+  if (ok && !n) toast('Aviso enviado, mas não há tablet online nesta célula', 'warn');
+  if (!ok && !frase) { const c2 = document.getElementById('cc-voz-' + id); if (c2) c2.value = txt; }
+}
+async function cadcFalarTodas() {
+  const campo = document.getElementById('cc-todas-txt'); const txt = campo.value.trim();
+  if (!txt) return toast('Digite o aviso', 'warn');
+  if (await cadcAcao(() => api(CC + '/voz', { method: 'POST', body: { todas: true, texto: txt } }), '📢 Aviso enviado para todas as células')) campo.value = '';
+}
+function cadcFalarTablet(id) {
+  const t = cadcTab(id); const txt = prompt(`O que o tablet "${t.nome}" deve falar?`);
+  if (txt && txt.trim()) cadcAcao(() => api(CC + '/voz', { method: 'POST', body: { tablet_id: id, texto: txt.trim() } }), '🔊 Enviado para ' + t.nome);
+}
+function cadcPausar(id, laboral) {
+  ccPausaId = id;
+  document.getElementById('cc-p-nome').textContent = cadcCel(id).nome;
+  document.getElementById('cc-p-motivo').value = laboral ? 'Ginástica laboral' : 'Reunião';
+  document.getElementById('cc-p-outro-g').style.display = 'none';
+  document.getElementById('cc-p-outro').value = '';
+  let min = ''; try { min = localStorage.getItem('cadc_laboral_min') || '10'; } catch (e) { min = '10'; }
+  document.getElementById('cc-p-min').value = laboral ? min : '';
+  document.getElementById('cc-m-pausa').classList.add('show');
+}
+async function cadcPausarOk() {
+  let motivo = document.getElementById('cc-p-motivo').value;
+  if (motivo === '__outro') motivo = document.getElementById('cc-p-outro').value.trim();
+  if (!motivo) return toast('Informe o motivo', 'warn');
+  const min = document.getElementById('cc-p-min').value;
+  if (motivo === 'Ginástica laboral' && min) { try { localStorage.setItem('cadc_laboral_min', min); } catch (e) {} }
+  if (await cadcAcao(() => api(CC + '/celulas/' + ccPausaId + '/pausar', { method: 'POST', body: { motivo, duracao_min: min } }), '⏸ Linha pausada — tablet avisado')) cadcFechaModal('cc-m-pausa');
+}
+function cadcRetomar(id) { cadcAcao(() => api(CC + '/celulas/' + id + '/retomar', { method: 'POST', body: {} }), '▶ Linha retomada'); }
+function cadcReiniciar(id) {
+  const agora = confirm('Reiniciar a contagem de ciclos desta célula.\n\nOK = começar a contar a partir de AGORA\nCancelar = não mexer');
+  if (!agora) return;
+  cadcAcao(() => api(CC + '/celulas/' + id + '/reiniciar', { method: 'POST', body: { de: 'agora' } }), 'Contagem reiniciada');
+}
+function cadcMover(id, celulaId) {
+  if (!id) return;
+  const destino = celulaId && celulaId !== 'livre' ? Number(celulaId) : null;
+  const t = cadcTab(id), c = destino ? cadcCel(destino) : null;
+  return cadcAcao(() => api(CC + '/tablets/' + id, { method: 'PUT', body: { celula_id: destino } }),
+    destino ? `📱 ${t ? t.nome : 'Tablet'} agora está em ${c ? c.nome : 'outra célula'}` : 'Tablet liberado');
+}
+function cadcLiberar(id) {
+  const t = cadcTab(id);
+  if (!confirm(`Liberar o tablet "${t.nome}"?\nEle sai da célula e volta para a tela de escolha.`)) return;
+  cadcMover(id, '');
+}
+function cadcRenomearTablet(id) {
+  const t = cadcTab(id); const nome = prompt('Nome do tablet:', t.nome || '');
+  if (nome && nome.trim()) cadcAcao(() => api(CC + '/tablets/' + id, { method: 'PUT', body: { nome: nome.trim() } }), 'Tablet renomeado');
+}
+function cadcRecarregar(id) { cadcAcao(() => api(CC + '/tablets/' + id + '/recarregar', { method: 'POST', body: {} }), 'Pedido de recarregar enviado'); }
+function cadcEsquecer(id) {
+  const t = cadcTab(id);
+  if (!confirm(`Apagar o tablet "${t.nome}" da lista?\nSe ele ainda estiver ligado, volta para a tela de escolha.`)) return;
+  cadcAcao(() => api(CC + '/tablets/' + id, { method: 'DELETE' }), 'Tablet apagado da lista');
+}
+
+/* ---------- histórico de ciclos (concluído / não concluído + motivo) ---------- */
+let ccCi = null, ccCiId = null, ccCiTimer = null;
+
+async function cadcCiclos(id) {
+  ccCiId = id; ccCi = null;
+  document.getElementById('cc-ci-nome').textContent = cadcCel(id).nome;
+  document.getElementById('cc-ci-dia').innerHTML = '';
+  document.getElementById('cc-ci-so-nok').checked = false;
+  document.getElementById('cc-ci-corpo').innerHTML = '<div style="padding:20px;color:var(--text2)">Carregando…</div>';
+  document.getElementById('cc-m-ciclos').classList.add('show');
+  await cadcCiclosCarregar(true);
+  clearInterval(ccCiTimer);
+  ccCiTimer = setInterval(() => {
+    if (!document.getElementById('cc-m-ciclos').classList.contains('show')) return cadcCiclosFechar();
+    const f = document.activeElement;
+    if (f && f.closest && f.closest('#cc-ci-corpo')) return;      // não mexe enquanto digita
+    cadcCiclosCarregar(false);
+  }, 5000);
+}
+function cadcCiclosFechar() { clearInterval(ccCiTimer); ccCiTimer = null; cadcFechaModal('cc-m-ciclos'); }
+
+async function cadcCiclosCarregar(rolar) {
+  const sel = document.getElementById('cc-ci-dia');
+  try { ccCi = await api(`${CC}/celulas/${ccCiId}/ciclos` + (sel.value ? '?data=' + sel.value : '')); }
+  catch (e) { toast(e.message, 'error'); return; }
+  sel.innerHTML = ccCi.dias.map(d => `<option value="${d}"${d === ccCi.data ? ' selected' : ''}>${fmtData(d)}${d === ccCi.hoje ? ' (hoje)' : ''}</option>`).join('');
+  cadcCiclosRender(rolar);
+}
+
+function cadcCiclosRender(rolar) {
+  if (!ccCi) return;
+  const corpo = document.getElementById('cc-ci-corpo');
+  const enc = ccCi.linhas.filter(l => l.estado === 'encerrado');
+  const nok = enc.filter(l => !l.concluido).length;
+  document.getElementById('cc-ci-ok').textContent = `${enc.length - nok} concluídos`;
+  document.getElementById('cc-ci-nok').textContent = `${nok} não concluídos`;
+  const semMotivo = enc.filter(l => !l.concluido && !l.observacao).length;
+  document.getElementById('cc-ci-info').textContent = semMotivo ? `⚠ ${semMotivo} sem motivo informado` : '';
+
+  const soNok = document.getElementById('cc-ci-so-nok').checked;
+  const linhas = soNok ? ccCi.linhas.filter(l => l.estado === 'encerrado' && !l.concluido) : ccCi.linhas;
+  if (!linhas.length) {
+    corpo.innerHTML = `<div style="padding:24px;color:var(--text2);text-align:center">${soNok ? 'Nenhum ciclo não concluído neste dia. 👍' : 'Nenhum ciclo neste dia.'}</div>`;
+    return;
+  }
+  const topo = corpo.scrollTop;
+  let rodadaAnt = null;
+  corpo.innerHTML = `<table><thead><tr><th style="width:70px">Ciclo</th><th style="width:80px">Horário</th><th style="width:190px">Situação</th><th>Motivo / observação</th></tr></thead><tbody>` +
+    linhas.map(l => {
+      let grupo = '';
+      if (l.rodada !== rodadaAnt) { rodadaAnt = l.rodada; grupo = `<tr class="grupo"><td colspan="4">📦 ${esc(l.produto || 'Produto')}${l.atual ? ' — contagem atual' : ''}</td></tr>`; }
+      const k = `${l.rodada}-${l.numero}`;
+      const sit = l.estado === 'encerrado'
+        ? `<label><input type="checkbox" ${l.concluido ? 'checked' : ''} onchange="cadcCicloSalvar(${l.rodada},${l.numero},{concluido:this.checked})">
+             <span class="badge ${l.concluido ? 'green' : 'red'}">${l.concluido ? 'Concluído' : 'Não concluído'}</span></label>`
+        : `<span class="badge ${l.estado === 'andamento' ? 'blue' : ''}" style="${l.estado === 'futuro' ? 'color:var(--text2)' : ''}">${l.estado === 'andamento' ? 'Em andamento' : 'A fazer'}</span>`;
+      const cls = l.estado !== 'encerrado' ? l.estado : (l.concluido ? '' : 'nok');
+      return grupo + `<tr class="${cls}" id="cc-ci-l-${k}">
+        <td class="n">#${l.numero}</td><td class="n">${String(l.hora).slice(0, 5)}</td><td>${sit}</td>
+        <td>${l.estado === 'futuro' ? '' : `<input type="text" maxlength="500" list="cc-dl-motivos" value="${esc(l.observacao)}"
+              class="${l.estado === 'encerrado' && !l.concluido && !l.observacao ? 'falta' : ''}"
+              placeholder="${l.estado === 'encerrado' && !l.concluido ? 'Informe o motivo' : ''}"
+              onchange="cadcCicloSalvar(${l.rodada},${l.numero},{observacao:this.value})">`}</td></tr>`;
+    }).join('') + '</tbody></table>';
+  if (rolar) { const a = corpo.querySelector('tr.andamento'); if (a) a.scrollIntoView({ block: 'center' }); }
+  else corpo.scrollTop = topo;
+}
+
+async function cadcCicloSalvar(rodada, numero, dados) {
+  const l = ccCi.linhas.find(x => x.rodada === rodada && x.numero === numero);
+  try {
+    await api(`${CC}/celulas/${ccCiId}/ciclos`, { method: 'PUT', body: { rodada, numero, ...dados } });
+    if (l) Object.assign(l, dados);
+    if ('concluido' in dados) {
+      cadcCiclosRender(false);
+      if (!dados.concluido) { const i = document.querySelector(`#cc-ci-l-${rodada}-${numero} input[type=text]`); if (i) i.focus(); }
+    } else {
+      const i = document.querySelector(`#cc-ci-l-${rodada}-${numero} input[type=text]`);
+      if (i) i.classList.toggle('falta', l && !l.concluido && !l.observacao);
+      const falta = ccCi.linhas.filter(x => x.estado === 'encerrado' && !x.concluido && !x.observacao).length;
+      document.getElementById('cc-ci-info').textContent = falta ? `⚠ ${falta} sem motivo informado` : '';
+      toast('Motivo salvo');
+    }
+  } catch (e) { toast('Não foi possível salvar: ' + e.message, 'error'); }
+}
+
+async function cadcCiclosLimpar() {
+  if (!ccCi) return;
+  if (!confirm(`Limpar as marcações do dia ${fmtData(ccCi.data)}?\nTodos os ciclos voltam para "Concluído" e os motivos são apagados.`)) return;
+  try { await api(`${CC}/celulas/${ccCiId}/ciclos/limpar`, { method: 'POST', body: { data: ccCi.data } }); toast('Marcações limpas'); }
+  catch (e) { toast(e.message, 'error'); }
+  cadcCiclosCarregar(false);
+}
+
+function cadcCiclosCSV() {
+  if (!ccCi) return;
+  const lin = ccCi.linhas.filter(l => l.estado === 'encerrado');
+  if (!lin.length) return toast('Nenhum ciclo encerrado para exportar', 'warn');
+  const cab = ['Data', 'Célula', 'Produto', 'Ciclo', 'Horário', 'Situação', 'Motivo / observação'];
+  const dados = lin.map(l => [fmtData(ccCi.data), ccCi.celula.nome, l.produto || '', l.numero, String(l.hora).slice(0, 5), l.concluido ? 'Concluído' : 'Não concluído', (l.observacao || '').replace(/[\r\n]/g, ' ')]);
+  const csv = [cab, ...dados].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = `ciclos_${ccCi.celula.nome.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w-]+/g, '_')}_${ccCi.data}.csv`; a.click();
+  toast('CSV exportado!');
+}
+
+/* ───────── Estação de pesagem (balança) ───────── */
+const PES = '/pesagem';
+let ccPe = null, ccPsId = null;
+const ccNum = v => { const x = parseFloat(String(v == null ? '' : v).replace(',', '.')); return Number.isFinite(x) ? x : null; };
+const ccKg = n => n == null ? '—' : Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+
+function cadcEstacaoMover(id, celulaId) {
+  cadcAcao(() => api(PES + '/admin/estacoes/' + id, { method: 'PUT', body: { celula_id: celulaId ? Number(celulaId) : null } }), celulaId ? 'Estação ligada à célula' : 'Estação sem célula');
+}
+function cadcEstacaoRenomear(id) {
+  const e = (ccVisao.estacoes || []).find(x => x.id === id); if (!e) return;
+  const nome = prompt('Nome da estação de pesagem:', e.nome || ''); if (!nome || !nome.trim()) return;
+  cadcAcao(() => api(PES + '/admin/estacoes/' + id, { method: 'PUT', body: { nome: nome.trim() } }), 'Nome alterado');
+}
+function cadcEstacaoApagar(id) {
+  if (!confirm('Apagar esta estação da lista? Se o notebook continuar ligado, será preciso fazer login nele de novo.')) return;
+  cadcAcao(() => api(PES + '/admin/estacoes/' + id, { method: 'DELETE' }), 'Estação apagada');
+}
+
+function cadcPesoProduto(prodId) {
+  const p = (ccCad.produtos || []).find(x => x.id === prodId) || (ccVisao.celulas.map(c => c.produto).find(x => x && x.id === prodId));
+  if (!p) return toast('Produto não encontrado', 'error');
+  ccPsId = prodId;
+  document.getElementById('cc-ps-nome').textContent = p.nome;
+  ccS('cc-ps-peso', p.peso_kg != null ? String(p.peso_kg).replace('.', ',') : '');
+  ccS('cc-ps-tol', p.peso_tol_kg != null ? String(p.peso_tol_kg).replace('.', ',') : '');
+  cadcPesoDica();
+  document.getElementById('cc-m-peso').classList.add('show');
+  document.getElementById('cc-ps-peso').focus();
+}
+function cadcPesoDica() {
+  const peso = ccNum(ccV('cc-ps-peso')), tolD = ccNum(ccV('cc-ps-tol'));
+  const d = document.getElementById('cc-ps-dica');
+  if (!(peso > 0)) { d.textContent = 'Sem peso cadastrado: a estação grava o peso lido, mas não confere se está certo.'; return; }
+  const tol = tolD != null && tolD >= 0 ? tolD : Math.max(0.05, Math.round(peso * 0.02 * 1000) / 1000);
+  d.innerHTML = `A estação aceita de <b>${ccKg(peso - tol)}</b> a <b>${ccKg(peso + tol)} kg</b>. Fora disso: tela vermelha e o tablet fala “Peso incorreto”.`;
+}
+async function cadcPesoSalvar() {
+  const peso = ccNum(ccV('cc-ps-peso')), tol = ccNum(ccV('cc-ps-tol'));
+  if (ccV('cc-ps-peso') && !(peso >= 0)) return toast('Peso inválido', 'error');
+  if (ccV('cc-ps-tol') && !(tol >= 0)) return toast('Tolerância inválida', 'error');
+  try {
+    await api(PES + '/admin/produtos/' + ccPsId + '/peso', { method: 'PUT', body: { peso_kg: peso, peso_tol_kg: tol } });
+    cadcFechaModal('cc-m-peso'); toast('Peso do produto salvo');
+    await ccRecarregarCadastros(); cadcAtualizar(true);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function cadcPesagens(celId) {
+  const c = cadcCel(celId); if (!c) return;
+  ccPe = { celula: c, linhas: [] };
+  document.getElementById('cc-pe-nome').textContent = c.nome;
+  ccS('cc-pe-dia', c.dia || ccVisao.hoje);
+  document.getElementById('cc-m-pes').classList.add('show');
+  cadcPesagensCarregar();
+}
+async function cadcPesagensCarregar() {
+  if (!ccPe) return;
+  const dia = ccV('cc-pe-dia') || ccVisao.hoje;
+  try { ccPe.linhas = await api(PES + `/admin/lista?celula_id=${ccPe.celula.id}&dia=${dia}`); ccPe.dia = dia; }
+  catch (e) { return toast(e.message, 'error'); }
+  const ok = ccPe.linhas.filter(l => l.serie).length, nok = ccPe.linhas.filter(l => !l.serie && l.ok === false).length;
+  document.getElementById('cc-pe-ok').textContent = ok + ' pesado(s)';
+  document.getElementById('cc-pe-nok').textContent = nok + ' peso(s) incorreto(s)';
+  const pesos = ccPe.linhas.filter(l => l.serie).map(l => l.peso_kg);
+  document.getElementById('cc-pe-info').textContent = pesos.length ? `peso médio ${ccKg(pesos.reduce((a, b) => a + b, 0) / pesos.length)} kg · menor ${ccKg(Math.min(...pesos))} · maior ${ccKg(Math.max(...pesos))}` : '';
+  document.getElementById('cc-pe-corpo').innerHTML = ccPe.linhas.length ? ccPe.linhas.map(l => `
+    <tr>
+      <td>${esc(l.hora)}</td>
+      <td class="${l.serie ? '' : 'nok'}"><b>${l.serie ? esc(l.serie) : '— não bipado —'}</b></td>
+      <td class="${l.ok === false ? 'nok' : ''}"><b>${ccKg(l.peso_kg)} kg</b></td>
+      <td>${l.peso_padrao != null ? ccKg(l.peso_padrao) + ' ± ' + ccKg(l.tolerancia) : 'sem cadastro'}</td>
+      <td>${l.ok === false ? '<span class="badge red">Peso incorreto</span>' : l.fora_faixa ? '<span class="badge yellow">Série fora da faixa da OP</span>' : l.ok === true ? '<span class="badge green">Peso correto</span>' : '<span class="badge blue">Sem conferência</span>'}</td>
+      <td>${esc(l.produto_nome || '')}</td>
+      <td>${esc(l.num_op || '—')}</td>
+      <td>${esc(l.estacao_nome || '')}</td>
+      <td><button class="btn-sm btn-ghost" title="Apagar esta pesagem" onclick="cadcPesagemApagar(${l.id})">🗑️</button></td>
+    </tr>`).join('') : '<tr><td colspan="9" style="color:var(--text2)">Nenhuma pesagem neste dia.</td></tr>';
+}
+async function cadcPesagemApagar(id) {
+  const l = ccPe.linhas.find(x => x.id === id); if (!l) return;
+  if (!confirm(l.serie ? `Apagar a pesagem da série ${l.serie}? Ela deixa de contar e pode ser pesada de novo.` : 'Apagar este registro de peso incorreto?')) return;
+  try { await api(PES + '/admin/pesagens/' + id, { method: 'DELETE' }); toast('Pesagem apagada'); cadcPesagensCarregar(); cadcAtualizar(true); }
+  catch (e) { toast(e.message, 'error'); }
+}
+function cadcPesagensCSV() {
+  if (!ccPe || !ccPe.linhas.length) return toast('Nenhuma pesagem para exportar', 'warn');
+  const cab = ['Data', 'Hora', 'Célula', 'Produto', 'Código', 'OP', 'N° de série', 'Peso (kg)', 'Peso padrão (kg)', 'Tolerância (kg)', 'Situação', 'Estação', 'Usuário'];
+  const n = v => v == null ? '' : String(v).replace('.', ',');
+  const dados = ccPe.linhas.map(l => [fmtData(l.dia), l.hora, l.celula_nome || '', l.produto_nome || '', l.cod_decio || '', l.num_op || '', l.serie || '',
+    n(l.peso_kg), n(l.peso_padrao), n(l.tolerancia), l.ok === false ? 'Peso incorreto' : l.fora_faixa ? 'Série fora da faixa' : l.ok === true ? 'Peso correto' : 'Sem conferência', l.estacao_nome || '', l.usuario || '']);
+  const csv = [cab, ...dados].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = `pesagens_${ccPe.celula.nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w-]+/g, '_')}_${ccPe.dia}.csv`; a.click();
+  toast('CSV exportado!');
+}
+
+/* A aba só existe para o administrador */
+(async () => {
+  try {
+    const eu = await api('/me');
+    if (eu.role !== 'admin') return;
+    document.body.classList.add('adm');
+    if (location.hash !== '#historico') document.getElementById('tab-central').click();
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

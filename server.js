@@ -1,0 +1,164 @@
+require('dotenv').config();
+
+const express = require('express');
+const session = require('express-session');
+const PgSession = require('connect-pg-simple')(session);
+const path = require('path');
+
+const { pool } = require('./db');
+const { initDB } = require('./db/schema');
+const { seed } = require('./db/seed');
+const { requireAuth, requireAdmin } = require('./middleware/auth');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const EM_PRODUCAO = process.env.NODE_ENV === 'production';
+
+// Railway roda atrás de proxy — necessário para cookie secure funcionar
+if (EM_PRODUCAO) app.set('trust proxy', 1);
+
+/* ════════════════ MIDDLEWARES ════════════════ */
+
+app.use(express.json({ limit: '12mb' }));
+app.use(express.urlencoded({ extended: true, limit: '12mb' }));
+
+app.use(session({
+  store: new PgSession({ pool, tableName: 'session', createTableIfMissing: false }),
+  secret: process.env.SESSION_SECRET || 'decio-montagem-dev-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 12 * 60 * 60 * 1000,   // 12h — cobre um turno inteiro
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: EM_PRODUCAO
+  }
+}));
+
+/* Só assets são servidos estaticamente. Os HTML passam obrigatoriamente
+   pelas rotas abaixo, que exigem sessão — servir a pasta inteira deixaria
+   /admin.html acessível sem login. */
+const estatico = (sub) => express.static(path.join(__dirname, 'public', sub), { maxAge: '1h' });
+app.use('/css',    estatico('css'));
+app.use('/js',     estatico('js'));
+app.use('/assets', estatico('assets'));
+
+app.get('/cadenciador.webmanifest', (_req, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'cadenciador.webmanifest')));
+
+/* ════════════════ API ════════════════ */
+
+app.get('/api/health', async (_req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    res.json({ ok: true, db: 'up', ts: new Date().toISOString() });
+  } catch (e) {
+    res.status(503).json({ ok: false, db: 'down', erro: e.message });
+  }
+});
+
+app.use(require('./middleware/auth').restringirPcp);
+app.use('/api', require('./routes/auth'));
+app.use('/api/config', require('./routes/config'));
+app.use('/api/colaboradores', require('./routes/colaboradores'));
+app.use('/api/ponto', require('./routes/ponto'));
+app.use('/api/cadenciador', require('./routes/cadenciador'));
+app.use('/api/cadenciador-central', require('./routes/cadenciador-central'));
+app.use('/api/pesagem', require('./routes/pesagem'));
+app.use('/api/ferramentas', require('./routes/ferramentas'));
+app.use('/api/epis', require('./routes/epis'));
+app.use('/api', require('./routes/banco-horas'));
+app.use('/api', require('./routes/treinamentos'));
+app.use('/api', require('./routes/diario'));
+app.use('/api', require('./routes/checklist'));
+app.use('/api', require('./routes/producao'));
+app.use('/api', require('./routes/produtos'));
+app.use('/api', require('./routes/linha-producao'));
+app.use('/api/limpeza', require('./routes/limpeza'));
+app.use('/api/fotos', require('./routes/fotos'));
+app.use('/api/export', require('./routes/export'));
+
+/* ════════════════ PÁGINAS ════════════════ */
+
+const pagina = (...p) => path.join(__dirname, 'public', ...p);
+
+app.get('/login', (_req, res) => res.sendFile(pagina('login.html')));
+
+// Portal — ponto único de entrada
+app.get('/', requireAuth, (_req, res) => res.sendFile(pagina('index.html')));
+
+// Painel administrador central
+app.get('/admin', requireAdmin, (_req, res) => res.sendFile(pagina('admin.html')));
+
+// Sistema 1 e 2
+app.get('/ponto', requireAuth, (_req, res) => res.sendFile(pagina('ponto.html')));
+app.get('/cadenciador', requireAuth, (_req, res) => res.sendFile(pagina('cadenciador.html')));
+// Cadenciador central — tela do tablet, presa à célula criada no PC do admin
+// Vale o login de uma pessoa OU a credencial própria do tablet (ele fica aberto 24 h, sem depender de login).
+app.get('/cadenciador/celula', (req, res, next) => require('./routes/cadenciador-central').tabletOuSessao(req, res, next),
+  (_req, res) => res.sendFile(pagina('cadenciador-celula.html')));
+// Estação de pesagem — notebook da linha com a balança e a coletora (USB). Login de uma pessoa OU credencial do notebook.
+app.get(['/pesagem', '/cadenciador/pesagem'], (req, res, next) => require('./routes/pesagem').estacaoOuSessao(req, res, next),
+  (_req, res) => res.sendFile(pagina('pesagem.html')));
+// Guarda a tela do tablet no aparelho: se a internet ou o servidor falharem na hora de abrir, ela abre assim mesmo.
+app.get('/cadc-sw.js', (_req, res) => {
+  res.set('Cache-Control', 'no-cache');
+  res.set('Service-Worker-Allowed', '/');
+  res.type('application/javascript').sendFile(pagina('js', 'cadc-sw.js'));
+});
+
+// Sistema 3 — ProGestão
+const MODULOS_PROGESTAO = [
+  'ferramentas', 'epis', 'banco-horas',
+  'treinamentos', 'diario-bordo', 'checklist', 'producao', 'limpeza',
+  'produtos', 'linha-producao', 'produto-estrutura'
+];
+
+app.get('/progestao', requireAuth, (_req, res) => res.sendFile(pagina('progestao', 'index.html')));
+
+MODULOS_PROGESTAO.forEach(m => {
+  app.get('/progestao/' + m, requireAuth, (_req, res) => res.sendFile(pagina('progestao', m + '.html')));
+});
+
+/* ════════════════ FALLBACK ════════════════ */
+
+app.use((req, res) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Rota não encontrada' });
+  }
+  if (!req.session || !req.session.userId) return res.redirect('/login');
+  res.redirect('/');
+});
+
+app.use((err, _req, res, _next) => {
+  console.error('Erro não tratado:', err);
+  res.status(500).json({ error: 'Erro interno do servidor' });
+});
+
+/* ════════════════ BOOT ════════════════ */
+
+async function iniciar() {
+  try {
+    console.log('┌────────────────────────────────────────────┐');
+    console.log('│  DÉCIO — Sistema Integrado da Montagem      │');
+    console.log('└────────────────────────────────────────────┘');
+
+    console.log('› Preparando banco de dados...');
+    await initDB();
+
+    if (process.env.SEED_ON_BOOT !== 'false') {
+      console.log('› Verificando dados iniciais...');
+      await seed();
+    }
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`› Servidor no ar na porta ${PORT}`);
+      console.log(`› Ambiente: ${EM_PRODUCAO ? 'produção' : 'desenvolvimento'}`);
+    });
+  } catch (err) {
+    console.error('Falha ao iniciar:', err);
+    process.exit(1);
+  }
+}
+
+iniciar();
